@@ -1,0 +1,758 @@
+#include <TJpg_Decoder.h>
+#include <SPI.h>
+#include <TFT_eSPI.h>
+#include <XPT2046_Touchscreen.h>
+
+// Include bitmap header files
+#include "bitmap1.h"  // Ambulance bitmap
+#include "bitmap2.h"  // Fire engine bitmap
+#include "bitmap3.h"  // Police bitmap
+#include "bitmap4.h"  // Emergency service bitmap
+
+TFT_eSPI tft = TFT_eSPI();
+
+// Touchscreen pins
+#define XPT2046_IRQ 16   // T_IRQ
+#define XPT2046_MOSI MOSI  // T_DIN
+#define XPT2046_MISO MISO  // T_OUT
+#define XPT2046_CLK SCK   // T_CLK
+#define XPT2046_CS 5    // T_CS
+
+SPIClass touchscreenSPI = SPIClass(VSPI);
+XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
+
+// Screen dimensions
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 200
+#define FONT_SIZE 2
+
+// Touch pressure threshold
+#define TOUCH_PRESSURE_THRESHOLD 4300
+
+// Bitmap dimensions (adjust based on your actual bitmap size)
+#define BITMAP_WIDTH 320
+#define BITMAP_HEIGHT 200
+
+// Hardware pins
+#define BUTTON_PIN 1
+#define NOTIFICATION_PIN 25
+#define BUZZER_PIN 33
+
+// System states and services
+enum SystemState { MAIN_MENU, SOS_MENU, CONFIG_MENU, CALLING_SCREEN, SLIDESHOW_MODE };
+enum Service { AMBULANCE, FIRE_ENGINE, POLICE, EMERGENCY };
+
+// Global variables
+SystemState currentState = MAIN_MENU;
+Service currentService = AMBULANCE;
+
+// Slideshow variables
+int currentSlide = 0;
+const int totalSlides = 4;
+bool slideChanged = true;
+bool slideshowActive = false;
+unsigned long slideChangeTime = 0;
+const unsigned long AUTO_SLIDE_DURATION = 3000;
+
+// Touch variables
+int x = 0;
+int y = 0;
+int z = 0;
+int lastDisplayedPressure = -1;
+
+// Hardware control variables
+unsigned long lastButtonPress = 0;
+unsigned long buzzerToggleTime = 0;
+unsigned long buttonPressStartTime = 0;
+unsigned long systemStartTime = 0;
+unsigned long lastPressureUpdate = 0;
+
+// Control flags
+bool buzzerActive = false;
+bool longPressDetected = false;
+bool lastButtonState = HIGH;
+bool emergencyCallActive = false;
+
+// Timing constants
+const unsigned long BUTTON_DEBOUNCE_TIME = 300;
+const unsigned long LONG_PRESS_DURATION = 2000;
+const unsigned long BUZZER_TOGGLE_INTERVAL = 500;
+const unsigned long CALL_DURATION = 5000;
+const unsigned long PRESSURE_UPDATE_INTERVAL = 1000;
+
+// Function prototypes
+void ShowMainMenu();
+void ShowSlide(Service service);
+void ConfigMenu();
+void CallEmergencyService();
+void ToggleBuzzer();
+void DrawServiceScreen(Service service);
+void DrawBitmapWithTextUnderIt(const char* serviceName, uint16_t bgColor, const unsigned char* bitmap);
+void ShowLogo();
+void handleEmergencyTimeout();
+void StartSlideshow();
+void StopSlideshow();
+void NextSlide();
+void DisplayCurrentSlide();
+void DrawServicePattern(int serviceIndex, int x, int y, uint16_t color);
+void handleButtonInput();
+void updatePressureDisplay();
+void drawMonochromeBitmap(int x, int y, const unsigned char* bitmap, int w, int h, uint16_t color);
+
+// Draw monochrome bitmap (1-bit)
+void drawMonochromeBitmap(int x, int y, const unsigned char* bitmap, int w, int h, uint16_t color) {
+  int byteWidth = (w + 7) / 8; // Bitmap scanline pad = whole byte
+  uint8_t byte = 0;
+
+  for (int j = 0; j < h; j++) {
+    for (int i = 0; i < w; i++) {
+      if (i & 7) {
+        byte <<= 1;
+      } else {
+        byte = pgm_read_byte(&bitmap[j * byteWidth + i / 8]);
+      }
+      if (byte & 0x80) {
+        tft.drawPixel(x + i, y + j, color);
+      }
+    }
+  }
+}
+
+// Update pressure display at bottom of screen
+void updatePressureDisplay() {
+  // Get current touch pressure
+  int currentPressure = 0;
+  if (touchscreen.touched()) {
+    TS_Point p = touchscreen.getPoint();
+    currentPressure = p.z;
+  }
+  
+  // Only update if pressure changed
+  if (currentPressure != lastDisplayedPressure) {
+    lastDisplayedPressure = currentPressure;
+    
+    // Clear bottom bar area
+    tft.fillRect(0, 225, 320, 15, TFT_BLACK);
+    
+    // Determine color based on pressure
+    uint16_t pressureColor;
+    if (currentPressure == 0) {
+      pressureColor = TFT_DARKGREY;
+    } else if (currentPressure > TOUCH_PRESSURE_THRESHOLD) {
+      pressureColor = TFT_GREEN;
+    } else {
+      pressureColor = TFT_ORANGE;
+    }
+    
+    // Display pressure text
+    tft.setTextColor(pressureColor, TFT_BLACK);
+    tft.setTextFont(1);
+    tft.setTextSize(1);
+    
+    String pressureText = "Pressure: " + String(currentPressure);
+    if (currentPressure > TOUCH_PRESSURE_THRESHOLD) {
+      pressureText += " [OK]";
+    } else if (currentPressure > 0) {
+      pressureText += " [LOW]";
+    }
+    
+    int textWidth = pressureText.length() * 6;
+    int textX = (SCREEN_WIDTH - textWidth) / 2;
+    tft.setCursor(textX, 228);
+    tft.print(pressureText);
+  }
+}
+
+// Slideshow functions
+void StartSlideshow() {
+  Serial.println("Starting slideshow demo mode");
+  slideshowActive = true;
+  currentState = SLIDESHOW_MODE;
+  currentSlide = 0;
+  slideChanged = true;
+  slideChangeTime = millis();
+  DisplayCurrentSlide();
+}
+
+void StopSlideshow() {
+  Serial.println("Stopping slideshow demo mode");
+  slideshowActive = false;
+  slideChanged = false;
+  if (currentState == SLIDESHOW_MODE) {
+    currentState = CONFIG_MENU;
+  }
+}
+
+void NextSlide() {
+  if (currentState == SLIDESHOW_MODE) {
+    currentSlide++;
+    if (currentSlide >= totalSlides) {
+      currentSlide = 0;
+    }
+    slideChanged = true;
+    slideChangeTime = millis();
+    DisplayCurrentSlide();
+  } else if (currentState == SOS_MENU) {
+    currentService = static_cast<Service>((currentService + 1) % 4);
+    ShowSlide(currentService);
+  }
+  
+  Serial.printf("Next slide/service: %d\n", currentState == SLIDESHOW_MODE ? currentSlide : currentService);
+}
+
+void DisplayCurrentSlide() {
+  if (currentState != SLIDESHOW_MODE) return;
+  
+  tft.fillScreen(TFT_BLACK);
+  
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.setTextSize(2);
+  tft.setCursor(10, 10);
+  tft.print("Demo Slide ");
+  tft.print(currentSlide + 1);
+  tft.print(" of ");
+  tft.println(totalSlides);
+  
+  String slideTitle;
+  uint16_t bgColor;
+  const unsigned char* bitmap = NULL;
+  
+  switch (currentSlide) {
+    case 0:
+      slideTitle = "Medical Emergency";
+      bgColor = TFT_RED;
+      bitmap = ambulanceBitmap;
+      break;
+    case 1:
+      slideTitle = "Fire Emergency";
+      bgColor = TFT_ORANGE;
+      bitmap = fireEngineBitmap;
+      break;
+    case 2:
+      slideTitle = "Police Emergency";
+      bgColor = TFT_BLUE;
+      bitmap = policeBitmap;
+      break;
+    case 3:
+      slideTitle = "General Emergency";
+      bgColor = TFT_PURPLE;
+      bitmap = emergencyBitmap;
+      break;
+  }
+  
+  tft.setTextSize(1);
+  tft.setCursor(10, 40);
+  tft.println(slideTitle);
+  
+  // Draw bitmap if available
+  if (bitmap != NULL) {
+    int bitmapX = (SCREEN_WIDTH - BITMAP_WIDTH) / 2;
+    int bitmapY = 80;
+    drawMonochromeBitmap(bitmapX, bitmapY, bitmap, BITMAP_WIDTH, BITMAP_HEIGHT, TFT_WHITE);
+  } else {
+    DrawServicePattern(currentSlide, 100, 80, bgColor);
+  }
+  
+  tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+  tft.setCursor(10, 200);
+  tft.println("Touch: Next slide  |  Auto: 3s");
+  
+  Serial.printf("Displayed slide: %d - %s\n", currentSlide + 1, slideTitle.c_str());
+  
+  lastDisplayedPressure = -1; // Force pressure refresh
+}
+
+void DrawServicePattern(int serviceIndex, int x, int y, uint16_t color) {
+  switch (serviceIndex) {
+    case 0: // Ambulance - medical cross
+      tft.fillRect(x + 44, y + 54, 40, 20, color);
+      tft.fillRect(x + 54, y + 44, 20, 40, color);
+      tft.drawRect(x + 42, y + 52, 44, 24, TFT_WHITE);
+      tft.drawRect(x + 52, y + 42, 24, 44, TFT_WHITE);
+      break;
+    case 1: // Fire - flame pattern
+      tft.fillTriangle(x + 64, y + 34, x + 44, y + 94, x + 84, y + 94, color);
+      tft.drawTriangle(x + 64, y + 32, x + 42, y + 96, x + 86, y + 96, TFT_YELLOW);
+      break;
+    case 2: // Police - badge
+      tft.fillCircle(x + 64, y + 64, 50, color);
+      tft.drawCircle(x + 64, y + 64, 52, TFT_WHITE);
+      tft.fillCircle(x + 64, y + 64, 30, TFT_BLACK);
+      break;
+    case 3: // Emergency - exclamation
+      tft.fillRect(x + 59, y + 44, 10, 40, color);
+      tft.fillCircle(x + 64, y + 94, 5, color);
+      tft.drawRect(x + 57, y + 42, 14, 44, TFT_WHITE);
+      break;
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+  
+  Serial.println("\n=== SOS System - OFFLINE MODE ===");
+  Serial.printf("Touch Pressure Threshold: %d\n", TOUCH_PRESSURE_THRESHOLD);
+  systemStartTime = millis();
+  
+  // Initialize display
+  Serial.println("Initializing display...");
+  tft.init();
+  tft.setRotation(1);
+  
+  // Initialize XPT2046 touchscreen
+  Serial.println("Initializing XPT2046 touchscreen...");
+  touchscreenSPI.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS);
+  touchscreen.begin(touchscreenSPI);
+  touchscreen.setRotation(1);
+  Serial.println("Touch initialized");
+  
+  // Show logo
+  ShowLogo();
+  delay(2000);
+  
+  // Initialize hardware pins
+  Serial.println("Initializing hardware pins...");
+  pinMode(NOTIFICATION_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  digitalWrite(NOTIFICATION_PIN, LOW);
+  digitalWrite(BUZZER_PIN, LOW);
+  
+  // System ready
+  ShowMainMenu();
+  
+  Serial.println("=== System Ready ===");
+  Serial.println("Mode: OFFLINE - Local alerts only");
+  Serial.println("Touch: XPT2046 Ready");
+  Serial.printf("Init Time: %lu ms\n", millis() - systemStartTime);
+  Serial.println("====================");
+}
+
+void loop() {
+  // Update pressure display every 1 second
+  if (millis() - lastPressureUpdate >= PRESSURE_UPDATE_INTERVAL) {
+    updatePressureDisplay();
+    lastPressureUpdate = millis();
+  }
+  
+  // Check if Touchscreen was touched
+  if (touchscreen.tirqTouched() && touchscreen.touched()) {
+    // Get Touchscreen points
+    TS_Point p = touchscreen.getPoint();
+    
+    // Calibrate Touchscreen points with map function to the correct width and height
+    x = map(p.x, 200, 3700, 1, SCREEN_WIDTH);
+    y = map(p.y, 240, 3800, 1, SCREEN_HEIGHT);
+    z = p.z;
+
+    // Print touch coordinates to Serial Monitor
+    Serial.print("X = ");
+    Serial.print(x);
+    Serial.print(" | Y = ");
+    Serial.print(y);
+    Serial.print(" | Pressure = ");
+    Serial.print(z);
+    
+    // Only process touch if pressure exceeds threshold
+    if (z > TOUCH_PRESSURE_THRESHOLD) {
+      Serial.println(" [VALID TOUCH]");
+      
+      // Handle touch based on current state
+      switch (currentState) {
+        case MAIN_MENU:
+          Serial.println("Touch: Going to SOS menu");
+          currentState = SOS_MENU;
+          ShowSlide(currentService);
+          break;
+          
+        case SOS_MENU:
+          Serial.println("Touch: Next service");
+          NextSlide();
+          break;
+          
+        case CONFIG_MENU:
+          Serial.println("Touch: Exiting config");
+          StopSlideshow();
+          currentState = MAIN_MENU;
+          ShowMainMenu();
+          break;
+          
+        case SLIDESHOW_MODE:
+          Serial.println("Touch: Next slide");
+          NextSlide();
+          break;
+          
+        case CALLING_SCREEN:
+          Serial.println("Touch: Cancelling emergency call");
+          emergencyCallActive = false;
+          buzzerActive = false;
+          digitalWrite(BUZZER_PIN, LOW);
+          currentState = SOS_MENU;
+          ShowSlide(currentService);
+          break;
+      }
+      
+      delay(300); // Debounce
+    } else {
+      Serial.println(" [TOO LIGHT]");
+    }
+  }
+  
+  
+  // Buzzer toggle
+  if (buzzerActive && (millis() - buzzerToggleTime >= BUZZER_TOGGLE_INTERVAL)) {
+    ToggleBuzzer();
+    buzzerToggleTime = millis();
+  }
+  
+  // Emergency timeout
+  if (emergencyCallActive) {
+    handleEmergencyTimeout();
+  }
+  
+  // Button input
+  handleButtonInput();
+  
+  delay(10);
+}
+
+void handleButtonInput() {
+  bool currentButtonState = digitalRead(BUTTON_PIN);
+  
+  // Button pressed
+  if (currentButtonState == LOW && lastButtonState == HIGH) {
+    buttonPressStartTime = millis();
+    longPressDetected = false;
+  }
+  
+  // Check for long press (config menu)
+  if (currentButtonState == LOW && !longPressDetected && 
+      (millis() - buttonPressStartTime >= LONG_PRESS_DURATION)) {
+    longPressDetected = true;
+    Serial.println("Button: Long press - Config menu");
+    StopSlideshow();
+    currentState = CONFIG_MENU;
+    ConfigMenu();
+  }
+  
+  // Button released (short press - call emergency)
+  if (currentButtonState == HIGH && lastButtonState == LOW && 
+      (millis() - lastButtonPress > BUTTON_DEBOUNCE_TIME) && !longPressDetected) {
+    
+    lastButtonPress = millis();
+    
+    if (currentState == SOS_MENU) {
+      Serial.println("Button: Calling emergency service");
+      CallEmergencyService();
+    }
+  }
+  
+  lastButtonState = currentButtonState;
+}
+
+void handleEmergencyTimeout() {
+  static unsigned long callStartTime = 0;
+  
+  if (callStartTime == 0) {
+    callStartTime = millis();
+  }
+  
+  if (millis() - callStartTime >= CALL_DURATION) {
+    emergencyCallActive = false;
+    buzzerActive = false;
+    digitalWrite(BUZZER_PIN, LOW);
+    callStartTime = 0;
+    
+    Serial.println("Emergency call completed");
+    currentState = SOS_MENU;
+    ShowSlide(currentService);
+  }
+}
+
+void ShowLogo() {
+  tft.fillScreen(TFT_RED);
+  int centerX = 160;
+  int centerY = 120;
+  int radius = 60;
+  int thickness = 8;
+
+  for (int r = radius - thickness / 2; r <= radius + thickness / 2; r++) {
+    tft.drawCircle(centerX, centerY, r, TFT_WHITE);
+  }
+
+  tft.setTextColor(TFT_BLACK, TFT_RED);
+  tft.setTextFont(4);
+  tft.setTextSize(1);
+  tft.setCursor(116, 106);
+  tft.print("SOS");
+  tft.setCursor(115, 105);
+  tft.setTextColor(TFT_WHITE, TFT_RED);
+  tft.print("SOS");
+  
+  tft.setTextFont(2);
+  tft.setTextSize(1);
+  tft.setTextColor(TFT_WHITE);
+  tft.setCursor(60, 170);
+  tft.println("Emergency System - OFFLINE");
+}
+
+void ShowMainMenu() {
+  Serial.println("Displaying main menu");
+  
+  tft.fillScreen(TFT_NAVY);
+  
+  tft.fillRect(0, 0, 320, 40, TFT_RED);
+  tft.drawLine(0, 40, 320, 40, TFT_WHITE);
+  
+  tft.setTextColor(TFT_WHITE);
+  tft.setTextFont(2);
+  tft.setTextSize(1);
+  tft.setCursor(70, 15);
+  tft.println("SOS EMERGENCY SYSTEM");
+  
+  tft.setTextFont(1);
+  tft.setTextSize(1);
+  
+  tft.setTextColor(TFT_CYAN);
+  tft.setCursor(20, 50);
+  tft.printf("Uptime: %lu s", (millis() - systemStartTime) / 1000);
+  
+  tft.setCursor(20, 65);
+  tft.setTextColor(TFT_WHITE);
+  tft.print("Mode: ");
+  tft.setTextColor(TFT_YELLOW);
+  tft.print("OFFLINE - Local Alerts");
+  
+  tft.setCursor(20, 80);
+  tft.setTextColor(TFT_WHITE);
+  tft.print("Touch: ");
+  tft.setTextColor(TFT_GREEN);
+  tft.printf("Ready (P > %d)", TOUCH_PRESSURE_THRESHOLD);
+  
+  tft.setTextColor(TFT_YELLOW);
+  tft.setCursor(20, 110);
+  tft.println("READY FOR EMERGENCY");
+  
+  tft.setTextColor(TFT_WHITE);
+  tft.setCursor(20, 130);
+  tft.println("Touch screen: Access SOS menu");
+  tft.setCursor(20, 145);
+  tft.println("Button: Call Emergency (Local)");
+  tft.setCursor(20, 160);
+  tft.println("Long press: Configuration");
+  
+  tft.drawRect(10, 175, 300, 35, TFT_ORANGE);
+  tft.setTextColor(TFT_ORANGE);
+  tft.setCursor(20, 185);
+  tft.print("NOTE: Press firmly on touchscreen");
+  
+  buzzerActive = false;
+  emergencyCallActive = false;
+  digitalWrite(BUZZER_PIN, LOW);
+  
+  lastDisplayedPressure = -1; // Force pressure refresh
+}
+
+void ShowSlide(Service service) {
+  Serial.printf("Showing service: %d\n", service);
+  DrawServiceScreen(service);
+  
+  buzzerActive = false;
+  emergencyCallActive = false;
+  digitalWrite(BUZZER_PIN, LOW);
+  
+  lastDisplayedPressure = -1; // Force pressure refresh
+}
+
+void ConfigMenu() {
+  Serial.println("Configuration menu");
+  
+  tft.fillScreen(TFT_BLUE);
+  
+  tft.fillRect(0, 0, 320, 40, TFT_WHITE);
+  tft.drawLine(0, 40, 320, 40, TFT_BLACK);
+  tft.setTextColor(TFT_BLACK);
+  tft.setTextFont(2);
+  tft.setTextSize(1);
+  tft.setCursor(90, 15);
+  tft.println("CONFIGURATION");
+  
+  tft.drawRect(15, 60, 290, 55, TFT_WHITE);
+  tft.setTextColor(TFT_WHITE);
+  tft.setTextFont(2);
+  tft.setTextSize(1);
+  tft.setCursor(25, 75);
+  tft.print("Mode: ");
+  tft.setTextColor(TFT_YELLOW);
+  tft.println("OFFLINE");
+  
+  tft.setTextFont(1);
+  tft.setTextSize(1);
+  tft.setTextColor(TFT_ORANGE);
+  tft.setCursor(25, 95);
+  tft.println("Local buzzer alerts only");
+  
+  tft.setCursor(25, 110);
+  tft.setTextColor(TFT_CYAN);
+  tft.printf("Touch threshold: %d", TOUCH_PRESSURE_THRESHOLD);
+  
+  tft.setTextFont(1);
+  tft.setTextSize(1);
+  tft.setTextColor(TFT_YELLOW);
+  tft.setCursor(25, 140);
+  tft.println("Touch anywhere to exit");
+  
+  lastDisplayedPressure = -1; // Force pressure refresh
+}
+
+void CallEmergencyService() {
+  Serial.println("Emergency call initiated - OFFLINE MODE");
+  
+  currentState = CALLING_SCREEN;
+  emergencyCallActive = true;
+  
+  const char* serviceName;
+  uint16_t serviceColor;
+  
+  switch (currentService) {
+    case AMBULANCE: 
+      serviceName = "AMBULANCE";
+      serviceColor = TFT_RED;
+      break;
+    case FIRE_ENGINE: 
+      serviceName = "FIRE DEPT";
+      serviceColor = TFT_ORANGE;
+      break;
+    case POLICE: 
+      serviceName = "POLICE";
+      serviceColor = TFT_BLUE;
+      break;
+    case EMERGENCY: 
+      serviceName = "EMERGENCY";
+      serviceColor = TFT_PURPLE;
+      break;
+  }
+  
+  tft.fillScreen(serviceColor);
+  
+  // Warning indicator - offline mode
+  tft.fillRect(0, 0, 320, 30, TFT_YELLOW);
+  tft.setTextColor(TFT_BLACK);
+  tft.setTextFont(2);
+  tft.setTextSize(1);
+  tft.setCursor(40, 8);
+  tft.println("OFFLINE - LOCAL ALERT ONLY");
+  
+  tft.fillCircle(160, 120, 60, TFT_WHITE);
+  tft.drawCircle(160, 120, 65, TFT_BLACK);
+  
+  tft.setTextColor(TFT_BLACK);
+  tft.setTextFont(4);
+  tft.setTextSize(1);
+  tft.setCursor(105, 105);
+  tft.println("CALLING");
+  
+  tft.setTextFont(2);
+  tft.setTextSize(1);
+  tft.setCursor(110, 135);
+  tft.println(serviceName);
+  
+  tft.fillRect(0, 200, 320, 25, TFT_BLACK);
+  tft.drawLine(0, 200, 320, 200, TFT_WHITE);
+  
+  tft.setTextFont(1);
+  tft.setTextSize(1);
+  tft.setTextColor(TFT_RED);
+  tft.setCursor(10, 210);
+  tft.print("Local alarm only - Touch: Cancel");
+  
+  // Activate local buzzer
+  digitalWrite(NOTIFICATION_PIN, HIGH);
+  buzzerActive = true;
+  buzzerToggleTime = millis();
+  
+  Serial.printf("LOCAL ALERT: %s | Buzzer: ACTIVE\n", serviceName);
+  
+  lastDisplayedPressure = -1; // Force pressure refresh
+}
+
+void ToggleBuzzer() {
+  static bool buzzerState = false;
+  buzzerState = !buzzerState;
+  digitalWrite(BUZZER_PIN, buzzerState ? HIGH : LOW);
+}
+
+void DrawServiceScreen(Service service) {
+  uint16_t backgroundColor;
+  const unsigned char* bitmap = NULL;
+  String serviceName;
+  
+  switch (service) {
+    case AMBULANCE:
+      backgroundColor = TFT_RED;
+      serviceName = "AMBULANCE";
+      bitmap = ambulanceBitmap;
+      break;
+    case FIRE_ENGINE:
+      backgroundColor = TFT_ORANGE;
+      serviceName = "FIRE DEPT";
+      bitmap = fireEngineBitmap;
+      break;
+    case POLICE:
+      backgroundColor = TFT_BLUE;
+      serviceName = "POLICE";
+      bitmap = policeBitmap;
+      break;
+    case EMERGENCY:
+      backgroundColor = TFT_PURPLE;
+      serviceName = "EMERGENCY";
+      bitmap = emergencyBitmap;
+      break;
+  }
+  
+  DrawBitmapWithTextUnderIt(serviceName.c_str(), backgroundColor, bitmap);
+}
+
+void DrawBitmapWithTextUnderIt(const char* serviceName, uint16_t bgColor, const unsigned char* bitmap) {
+  tft.fillScreen(bgColor);
+  
+  int centerX = 160;
+  int centerY = 90;
+  
+  // Display SOS text at top
+  tft.setTextColor(TFT_WHITE);
+  tft.setTextFont(4);
+  tft.setTextSize(1);
+  tft.setCursor(115, 30);
+  tft.println("SOS");
+  
+  // Display bitmap centered
+  if (bitmap != NULL) {
+    int bitmapX = centerX - (BITMAP_WIDTH / 2);
+    int bitmapY = centerY - (BITMAP_HEIGHT / 2);
+    drawMonochromeBitmap(bitmapX, bitmapY, bitmap, BITMAP_WIDTH, BITMAP_HEIGHT, TFT_WHITE);
+  }
+  
+  // Display service name with shadow effect
+  tft.setTextFont(2);
+  tft.setTextSize(1);
+  tft.setTextColor(TFT_BLACK);
+  tft.setCursor(61, 161);
+  tft.println(serviceName);
+  tft.setTextColor(TFT_WHITE);
+  tft.setCursor(60, 160);
+  tft.println(serviceName);
+  
+  // Bottom instructions bar
+  tft.fillRect(0, 180, 320, 45, TFT_BLACK);
+  tft.drawLine(0, 180, 320, 180, TFT_WHITE);
+  
+  tft.setTextFont(1);
+  tft.setTextSize(1);
+  tft.setTextColor(TFT_YELLOW);
+  tft.setCursor(10, 190);
+  tft.println("TOUCH: Next Service");
+  tft.setCursor(10, 202);
+  tft.println("BUTTON: Call Emergency");
+}
