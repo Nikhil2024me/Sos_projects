@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Agriculture Dashboard V3</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            transition: background-color 0.5s;
+        }
+        .dark-mode {
+            background-color: #1a202c;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <header class="flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Smart Agriculture Dashboard V3</h1>
+            <button id="toggleDarkMode" class="bg-gray-700 text-white px-4 py-2 rounded">Toggle Dark Mode</button>
+        </header>
+        
+        <nav class="my-4">
+            <ul class="flex space-x-4">
+                <li><a href="#dashboard" class="text-blue-500">Dashboard</a></li>
+                <li><a href="#espMonitor" class="text-blue-500">ESP Monitor</a></li>
+                <li><a href="#cropAdvisor" class="text-blue-500">Crop Advisor</a></li>
+                <li><a href="#infoHub" class="text-blue-500">Info Hub</a></li>
+                <li><a href="#aiIrrigation" class="text-blue-500">AI Irrigation</a></li>
+            </ul>
+        </nav>
+        
+        <section id="dashboard" class="my-4">
+            <h2 class="text-xl font-semibold">Dashboard</h2>
+            <canvas id="sensorDataChart"></canvas>
+        </section>
+        
+        <section id="espMonitor" class="my-4">
+            <h2 class="text-xl font-semibold">ESP Monitor</h2>
+            <div id="sensorReadings"></div>
+        </section>
+        
+        <section id="cropAdvisor" class="my-4">
+            <h2 class="text-xl font-semibold">Crop Advisor</h2>
+            <div id="cropRecommendations"></div>
+        </section>
+        
+        <section id="infoHub" class="my-4">
+            <h2 class="text-xl font-semibold">Info Hub</h2>
+            <div id="weatherInfo"></div>
+        </section>
+        
+        <section id="aiIrrigation" class="my-4">
+            <h2 class="text-xl font-semibold">AI Irrigation Assistant</h2>
+            <div id="irrigationRecommendations"></div>
+        </section>
+        
+        <footer class="mt-10">
+            <p>Credits: Your Name | © 2023</p>
+        </footer>
+    </div>
+
+    <script>
+        // Dark mode toggle
+        const toggleDarkMode = document.getElementById('toggleDarkMode');
+        toggleDarkMode.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+        });
+
+        // Placeholder for Chart.js integration
+        const ctx = document.getElementById('sensorDataChart').getContext('2d');
+        const sensorDataChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Moisture', 'Temperature', 'Humidity'],
+                datasets: [{
+                    label: 'Sensor Data',
+                    data: [0, 0, 0],
+                    borderColor: 'rgb(75, 192, 192)',
+                    fill: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true
+                    }
+                }
+            }
+        });
+
+        // Additional scripts for real-time sensor monitoring, crop advisor, etc. would go here
+    </script>
+</body>
+</html>
