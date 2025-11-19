@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOS Connect Pro - Serial Monitor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar">
+            <div class="sidebar-logo">
+                <div class="sidebar-logo-icon">SOS</div>
+                <div class="sidebar-logo-text">Connect Pro</div>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="sidebar-item active" data-tab="terminal">
+                    <span class="sidebar-item-icon">💻</span>
+                    <span>Terminal</span>
+                </button>
+                <button class="sidebar-item" data-tab="weather">
+                    <span class="sidebar-item-icon">🌤️</span>
+                    <span>Weather & Sensors</span>
+                </button>
+                <button class="sidebar-item" data-tab="config">
+                    <span class="sidebar-item-icon">⚙️</span>
+                    <span>Configuration</span>
+                </button>
+            </nav>
+            <div class="sidebar-status">
+                <span class="sidebar-status-dot" id="sidebarStatusDot"></span>
+                <span class="sidebar-status-text" id="sidebarStatusText">Disconnected</span>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content-area">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">SOS</div>
+                <h1>SOS Connect Pro</h1>
+            </div>
+            <div class="status">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span class="status-indicator" id="statusIndicator2"></span>
+                <span class="status-text" id="statusText" aria-live="polite">Disconnected</span>
+            </div>
+        </header>
+
+        <!-- Dynamic Island - Interactive Notification Hub -->
+        <div class="dynamic-island" id="dynamicIsland">
+            <div class="island-content" id="islandContent">
+                <!-- Default Compact State -->
+                <div class="island-state island-compact active" id="islandCompact">
+                    <div class="island-dot"></div>
+                </div>
+
+                <!-- Connection Status State -->
+                <div class="island-state island-connection" id="islandConnection">
+                    <div class="island-icon connection-icon">📡</div>
+                    <div class="island-text">
+                        <div class="island-title">Serial Connected</div>
+                        <div class="island-subtitle">115200 baud</div>
+                    </div>
+                    <div class="island-pulse"></div>
+                </div>
+
+                <!-- Sensor Alert State -->
+                <div class="island-state island-sensor" id="islandSensor">
+                    <div class="island-icon sensor-icon">🌡️</div>
+                    <div class="island-text">
+                        <div class="island-title">Temperature Alert</div>
+                        <div class="island-subtitle">35.2°C - High</div>
+                    </div>
+                    <div class="island-wave"></div>
+                </div>
+
+                <!-- Emergency State -->
+                <div class="island-state island-emergency" id="islandEmergency">
+                    <div class="island-icon emergency-icon">🚨</div>
+                    <div class="island-text">
+                        <div class="island-title">EMERGENCY DETECTED</div>
+                        <div class="island-subtitle">Tap to acknowledge</div>
+                    </div>
+                    <div class="island-ripple"></div>
+                </div>
+
+                <!-- Weather Update State -->
+                <div class="island-state island-weather" id="islandWeather">
+                    <div class="island-icon weather-icon">🌤️</div>
+                    <div class="island-text">
+                        <div class="island-title">Weather Update</div>
+                        <div class="island-subtitle">29°C, Sunny</div>
+                    </div>
+                </div>
+
+                <!-- Data Transfer State -->
+                <div class="island-state island-data" id="islandData">
+                    <div class="island-icon data-icon">📊</div>
+                    <div class="island-text">
+                        <div class="island-title">Receiving Data</div>
+                        <div class="island-subtitle">
+                            <div class="island-progress">
+                                <div class="island-progress-bar"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Multi-Activity Expanded State -->
+                <div class="island-state island-expanded" id="islandExpanded">
+                    <div class="island-split-view">
+                        <div class="island-activity">
+                            <div class="activity-icon">📡</div>
+                            <div class="activity-info">
+                                <div class="activity-label">Connection</div>
+                                <div class="activity-status">Active</div>
+                            </div>
+                        </div>
+                        <div class="island-divider"></div>
+                        <div class="island-activity">
+                            <div class="activity-icon">🌡️</div>
+                            <div class="activity-info">
+                                <div class="activity-label">Sensors</div>
+                                <div class="activity-status">Monitoring</div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="island-close" id="islandClose">✕</button>
+                </div>
+
+                <!-- AI Assistant Active State -->
+                <div class="island-state island-ai" id="islandAI">
+                    <div class="island-icon ai-icon">🤖</div>
+                    <div class="island-text">
+                        <div class="island-title">AI Responding</div>
+                        <div class="island-subtitle">
+                            <div class="typing-dots">
+                                <span></span><span></span><span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download Progress State -->
+                <div class="island-state island-download" id="islandDownload">
+                    <div class="island-icon download-icon">💾</div>
+                    <div class="island-text">
+                        <div class="island-title">Saving Log</div>
+                        <div class="island-subtitle">
+                            <div class="island-circular-progress">
+                                <svg viewBox="0 0 36 36">
+                                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3"/>
+                                    <path class="circle-progress" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#60a5fa" stroke-width="3" stroke-dasharray="100, 100"/>
+                                </svg>
+                                <span class="progress-percent">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Tab Navigation -->
+        <div class="main-tabs">
+            <button class="main-tab active" data-tab="terminal" aria-pressed="true">
+                <span class="tab-icon">💻</span>
+                <span class="tab-label">Terminal</span>
+            </button>
+            <button class="main-tab" data-tab="weather" aria-pressed="false">
+                <span class="tab-icon">🌤️</span>
+                <span class="tab-label">Weather & Sensors</span>
+            </button>
+            <button class="main-tab" data-tab="config" aria-pressed="false">
+                <span class="tab-icon">⚙️</span>
+                <span class="tab-label">Configuration</span>
+            </button>
+        </div>
+
+        <!-- Terminal Tab Content -->
+        <div class="tab-content active" id="terminalTab">
+            <div class="controls">
+                <button class="btn btn-disconnect" id="connectBtn" aria-label="Connect to device">
+                    <span class="btn-icon">📡</span>
+                    CONNECT
+                </button>
+                <button class="btn btn-clear" id="clearBtn" aria-label="Clear terminal output">
+                    <span class="btn-icon">🗑️</span>
+                    CLEAR
+                </button>
+                <button class="btn btn-scroll" id="autoScrollBtn" aria-pressed="true" aria-label="Toggle auto scroll">
+                    <span class="btn-icon">📜</span>
+                    AUTO-SCROLL: ON
+                </button>
+                <button class="btn btn-download" id="downloadBtn" aria-label="Save log to file">
+                    <span class="btn-icon">💾</span>
+                    SAVE LOG
+                </button>
+            </div>
+
+            <div class="terminal" id="terminal">
+                <div class="terminal-content" id="terminalContent">
+                    Waiting for data...
+                </div>
+            </div>
+        </div>
+
+        <!-- Weather & Sensors Tab Content -->
+        <div class="tab-content" id="weatherTab">
+            <!-- New Masonry Grid Layout -->
+            <div class="weather-sensors-grid">
+                
+                <!-- Hero Weather Card -->
+                <div class="grid-item hero-weather-card">
+                    <div class="card-inner">
+                        <div class="weather-hero-icon" id="weatherIconLarge">☀️</div>
+                        <div class="weather-hero-temp" id="weatherTempLarge">29°C</div>
+                        <div class="weather-hero-condition" id="weatherCondition">Sunny</div>
+                        <div class="weather-hero-location" id="weatherTime">Friday, 5:00 pm</div>
+                        <div class="weather-hero-stats">
+                            <div class="hero-stat">
+                                <span class="hero-stat-icon">💧</span>
+                                <span class="hero-stat-label">Precip</span>
+                                <span class="hero-stat-value" id="panelPrecip">0%</span>
+                            </div>
+                            <div class="hero-stat">
+                                <span class="hero-stat-icon">💦</span>
+                                <span class="hero-stat-label">Humidity</span>
+                                <span class="hero-stat-value" id="panelHumidity">59%</span>
+                            </div>
+                            <div class="hero-stat">
+                                <span class="hero-stat-icon">💨</span>
+                                <span class="hero-stat-label">Wind</span>
+                                <span class="hero-stat-value" id="panelWind">18 km/h</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sensor Gauge Cards -->
+                <div class="grid-item sensor-gauge-card temperature-card">
+                    <div class="card-inner">
+                        <div class="sensor-gauge-header">
+                            <span class="sensor-gauge-icon">🌡️</span>
+                            <h3>Temperature</h3>
+                        </div>
+                        <div class="circular-gauge">
+                            <svg class="gauge-svg" viewBox="0 0 200 200">
+                                <defs>
+                                    <linearGradient id="tempGaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#f97316;stop-opacity:1" />
+                                    </linearGradient>
+                                </defs>
+                                <circle class="gauge-bg" cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="16"/>
+                                <circle class="gauge-fill temp-gauge-fill" cx="100" cy="100" r="80" fill="none" stroke="url(#tempGaugeGradient)" stroke-width="16" stroke-linecap="round" id="tempGaugeFill"/>
+                            </svg>
+                            <div class="gauge-center">
+                                <div class="gauge-value" id="tempValue">--°C</div>
+                                <div class="gauge-label">Current</div>
+                            </div>
+                        </div>
+                        <div class="gauge-range">
+                            <span>0°C</span>
+                            <span>50°C</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-item sensor-gauge-card humidity-card">
+                    <div class="card-inner">
+                        <div class="sensor-gauge-header">
+                            <span class="sensor-gauge-icon">💧</span>
+                            <h3>Humidity</h3>
+                        </div>
+                        <div class="circular-gauge">
+                            <svg class="gauge-svg" viewBox="0 0 200 200">
+                                <defs>
+                                    <linearGradient id="humidityGaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+                                    </linearGradient>
+                                </defs>
+                                <circle class="gauge-bg" cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="16"/>
+                                <circle class="gauge-fill humidity-gauge-fill" cx="100" cy="100" r="80" fill="none" stroke="url(#humidityGaugeGradient)" stroke-width="16" stroke-linecap="round" id="humidityGaugeFill"/>
+                            </svg>
+                            <div class="gauge-center">
+                                <div class="gauge-value" id="humidityValue">--%</div>
+                                <div class="gauge-label">Current</div>
+                            </div>
+                        </div>
+                        <div class="gauge-range">
+                            <span>0%</span>
+                            <span>100%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-item sensor-gauge-card ph-card">
+                    <div class="card-inner">
+                        <div class="sensor-gauge-header">
+                            <span class="sensor-gauge-icon">🧪</span>
+                            <h3>Soil pH</h3>
+                        </div>
+                        <div class="circular-gauge">
+                            <svg class="gauge-svg" viewBox="0 0 200 200">
+                                <defs>
+                                    <linearGradient id="phGaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#34d399;stop-opacity:1" />
+                                    </linearGradient>
+                                </defs>
+                                <circle class="gauge-bg" cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="16"/>
+                                <circle class="gauge-fill ph-gauge-fill" cx="100" cy="100" r="80" fill="none" stroke="url(#phGaugeGradient)" stroke-width="16" stroke-linecap="round" id="phGaugeFill"/>
+                            </svg>
+                            <div class="gauge-center">
+                                <div class="gauge-value" id="phValue">--</div>
+                                <div class="gauge-label" id="phStatus">Neutral</div>
+                            </div>
+                        </div>
+                        <div class="gauge-range">
+                            <span>3.0</span>
+                            <span>10.0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weekly Forecast Card -->
+                <div class="grid-item forecast-card">
+                    <div class="card-inner">
+                        <div class="forecast-header">
+                            <span class="forecast-icon">�</span>
+                            <h3>7-Day Forecast</h3>
+                        </div>
+                        <div class="forecast-scroll">
+                            <div class="forecast-day">
+                                <p class="day-name">Fri</p>
+                                <span class="day-icon">☀️</span>
+                                <p class="day-temp">33° / 24°</p>
+                            </div>
+                            <div class="forecast-day">
+                                <p class="day-name">Sat</p>
+                                <span class="day-icon">🌤</span>
+                                <p class="day-temp">34° / 23°</p>
+                            </div>
+                            <div class="forecast-day">
+                                <p class="day-name">Sun</p>
+                                <span class="day-icon">🌥</span>
+                                <p class="day-temp">33° / 23°</p>
+                            </div>
+                            <div class="forecast-day">
+                                <p class="day-name">Mon</p>
+                                <span class="day-icon">🌤</span>
+                                <p class="day-temp">34° / 24°</p>
+                            </div>
+                            <div class="forecast-day">
+                                <p class="day-name">Tue</p>
+                                <span class="day-icon">🌧</span>
+                                <p class="day-temp">33° / 24°</p>
+                            </div>
+                            <div class="forecast-day">
+                                <p class="day-name">Wed</p>
+                                <span class="day-icon">🌥</span>
+                                <p class="day-temp">32° / 24°</p>
+                            </div>
+                            <div class="forecast-day">
+                                <p class="day-name">Thu</p>
+                                <span class="day-icon">☁️</span>
+                                <p class="day-temp">32° / 23°</p>
+                            </div>
+                            <div class="forecast-day">
+                                <p class="day-name">Fri</p>
+                                <span class="day-icon">🌤</span>
+                                <p class="day-temp">32° / 23°</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weather Chart Card -->
+                <div class="grid-item chart-card">
+                    <div class="card-inner">
+                        <div class="chart-card-header">
+                            <h3>Weather Trends</h3>
+                            <div class="chart-tabs-mini">
+                                <button class="chart-tab-mini active" data-chart="temperature">Temp</button>
+                                <button class="chart-tab-mini" data-chart="precipitation">Rain</button>
+                                <button class="chart-tab-mini" data-chart="wind">Wind</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="hourlyWeatherChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Sensor Trends Graph Card (inside grid) -->
+            <div class="grid-item trends-card">
+                <div class="card-inner">
+                    <div class="trends-header">
+                        <span class="trends-icon">📈</span>
+                        <h3>Sensor Trends</h3>
+                    </div>
+                    <div class="trends-controls" role="group" aria-label="Select data series">
+                        <button class="trend-btn active" data-series="temperature" aria-pressed="true">🌡️ Temp</button>
+                        <button class="trend-btn" data-series="humidity" aria-pressed="false">💧 Humidity</button>
+                        <button class="trend-btn" data-series="ph" aria-pressed="false">🧪 pH</button>
+                    </div>
+                    <div class="trends-canvas">
+                        <canvas id="sensorTrendsCanvas" width="600" height="300" aria-label="Sensor trends chart" role="img"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            </div> <!-- Close weather-sensors-grid -->
+
+        <!-- Weather Widget -->
+        <div class="weather-widget" id="weatherWidget">
+            <div class="weather-header">
+                <span class="weather-icon" id="weatherIcon">🌤️</span>
+                <div class="weather-info">
+                    <div class="weather-location" id="weatherLocation">Loading...</div>
+                    <div class="weather-temp" id="weatherTemp">--°C</div>
+                </div>
+            </div>
+            
+            <!-- Weather Tabs -->
+            <div class="weather-tabs">
+                <button class="weather-tab active" data-tab="main">Main</button>
+                <button class="weather-tab" data-tab="details">Detailed Metrics</button>
+            </div>
+            
+            <!-- Main Weather Tab -->
+            <div class="weather-tab-content active" id="mainWeatherTab">
+                <div class="weather-details">
+                    <div class="weather-detail">
+                        <span class="detail-icon">💨</span>
+                        <span id="weatherWind">-- km/h</span>
+                    </div>
+                    <div class="weather-detail">
+                        <span class="detail-icon">💧</span>
+                        <span id="weatherHumidity">--%</span>
+                    </div>
+                    <div class="weather-detail">
+                        <span class="detail-icon">🌡️</span>
+                        <span id="weatherFeels">--°C</span>
+                    </div>
+                    <div class="weather-detail">
+                        <span class="detail-icon">☁️</span>
+                        <span id="weatherCloudCover">--%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Detailed Metrics Tab -->
+            <div class="weather-tab-content" id="detailsWeatherTab">
+                <div class="weather-details">
+                    <div class="weather-detail">
+                        <span class="detail-icon">🌫️</span>
+                        <span id="weatherVisibility">-- km</span>
+                    </div>
+                    <div class="weather-detail">
+                        <span class="detail-icon">💦</span>
+                        <span id="weatherDewPoint">--°C</span>
+                    </div>
+                    <div class="weather-detail">
+                        <span class="detail-icon">☀️</span>
+                        <span id="weatherUV">UV --</span>
+                    </div>
+                    <div class="weather-detail">
+                        <span class="detail-icon">🌡️</span>
+                        <span id="weatherPressure">-- hPa</span>
+                    </div>
+                    <div class="weather-detail">
+                        <span class="detail-icon">🔆</span>
+                        <span id="weatherSolarRadiation">-- W/m²</span>
+                    </div>
+                    <div class="weather-detail">
+                        <span class="detail-icon">💨</span>
+                        <span id="weatherEvaporation">-- mm</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="weather-description" id="weatherDescription">--</div>
+        </div>
+
+        <!-- Crop Recommendation Widget -->
+        <div class="crop-widget" id="cropWidget">
+            <div class="crop-header">
+                <span class="crop-icon">🌾</span>
+                <h2 class="crop-title">Crop Planting Recommendations</h2>
+            </div>
+            <div class="crop-content">
+                <div class="crop-season" id="cropSeason">Current Season: Loading...</div>
+                <div class="crop-recommendations" id="cropRecommendations">
+                    <div class="crop-item">
+                        <span class="crop-emoji">🌱</span>
+                        <span class="crop-name">Loading recommendations...</span>
+                    </div>
+                </div>
+                <div class="crop-tips" id="cropTips">
+                    <div class="tip-title">💡 Farming Tips:</div>
+                    <div class="tip-content" id="tipContent">Loading...</div>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- Configuration Tab Content -->
+        <div class="tab-content" id="configTab">
+            <div class="config-container">
+                <div class="config-header">
+                    <span class="config-icon">⚙️</span>
+                    <h2 class="config-title">System Configuration</h2>
+                </div>
+                
+                <!-- Theme Settings -->
+                <div class="config-section">
+                    <h3 class="config-section-title">
+                        <span class="section-icon">🎨</span>
+                        Theme Settings
+                    </h3>
+                    <div class="config-group">
+                        <label class="config-label">
+                            <span>Color Theme</span>
+                            <div class="theme-selector">
+                                <button class="theme-btn" data-theme="normal" title="Normal Theme">
+                                    <span class="theme-icon">🌈</span>
+                                    <span class="theme-label">Normal</span>
+                                </button>
+                                <button class="theme-btn" data-theme="light" title="Light Theme">
+                                    <span class="theme-icon">☀️</span>
+                                    <span class="theme-label">Light</span>
+                                </button>
+                                <button class="theme-btn" data-theme="dark" title="Dark Theme">
+                                    <span class="theme-icon">🌙</span>
+                                    <span class="theme-label">Dark</span>
+                                </button>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Serial Port Settings -->
+                <div class="config-section">
+                    <h3 class="config-section-title">
+                        <span class="section-icon">🔌</span>
+                        Serial Port Settings
+                    </h3>
+                    <div class="config-group">
+                        <label class="config-label">
+                            <span>Baud Rate</span>
+                            <select class="config-select" id="baudRate">
+                                <option value="9600">9600</option>
+                                <option value="19200">19200</option>
+                                <option value="38400">38400</option>
+                                <option value="57600">57600</option>
+                                <option value="115200" selected>115200</option>
+                            </select>
+                        </label>
+                        <label class="config-label">
+                            <span>Data Bits</span>
+                            <select class="config-select" id="dataBits">
+                                <option value="7">7</option>
+                                <option value="8" selected>8</option>
+                            </select>
+                        </label>
+                        <label class="config-label">
+                            <span>Stop Bits</span>
+                            <select class="config-select" id="stopBits">
+                                <option value="1" selected>1</option>
+                                <option value="2">2</option>
+                            </select>
+                        </label>
+                        <label class="config-label">
+                            <span>Parity</span>
+                            <select class="config-select" id="parity">
+                                <option value="none" selected>None</option>
+                                <option value="even">Even</option>
+                                <option value="odd">Odd</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Display Settings -->
+                <div class="config-section">
+                    <h3 class="config-section-title">
+                        <span class="section-icon">🎨</span>
+                        Display Settings
+                    </h3>
+                    <div class="config-group">
+                        <label class="config-label checkbox-label">
+                            <input type="checkbox" id="autoScrollConfig" checked>
+                            <span>Auto-scroll terminal</span>
+                        </label>
+                        <label class="config-label checkbox-label">
+                            <input type="checkbox" id="timestampsConfig">
+                            <span>Show timestamps</span>
+                        </label>
+                        <label class="config-label checkbox-label">
+                            <input type="checkbox" id="soundEffectsConfig" checked>
+                            <span>Sound effects</span>
+                        </label>
+                        <label class="config-label">
+                            <span>Font Size</span>
+                            <input type="range" class="config-range" id="fontSize" min="12" max="24" value="16">
+                            <span class="range-value" id="fontSizeValue">16px</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Data Settings -->
+                <div class="config-section">
+                    <h3 class="config-section-title">
+                        <span class="section-icon">📊</span>
+                        Data Settings
+                    </h3>
+                    <div class="config-group">
+                        <label class="config-label">
+                            <span>Max Log Size (lines)</span>
+                            <input type="number" class="config-input" id="maxLogSize" value="1000" min="100" max="10000">
+                        </label>
+                        <label class="config-label">
+                            <span>Trend Chart Points</span>
+                            <input type="number" class="config-input" id="trendPoints" value="20" min="10" max="50">
+                        </label>
+                        <label class="config-label">
+                            <span>Update Interval (ms)</span>
+                            <input type="number" class="config-input" id="updateInterval" value="5000" min="1000" max="30000" step="1000">
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Notification Settings -->
+                <div class="config-section">
+                    <h3 class="config-section-title">
+                        <span class="section-icon">🔔</span>
+                        Notification Settings
+                    </h3>
+                    <div class="config-group">
+                        <label class="config-label checkbox-label">
+                            <input type="checkbox" id="emergencyAlerts" checked>
+                            <span>Emergency alerts</span>
+                        </label>
+                        <label class="config-label checkbox-label">
+                            <input type="checkbox" id="systemNotifications" checked>
+                            <span>System notifications</span>
+                        </label>
+                        <label class="config-label checkbox-label">
+                            <input type="checkbox" id="weatherAlerts" checked>
+                            <span>Weather alerts</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Advanced Settings -->
+                <div class="config-section">
+                    <h3 class="config-section-title">
+                        <span class="section-icon">🔧</span>
+                        Advanced Settings
+                    </h3>
+                    <div class="config-group">
+                        <label class="config-label">
+                            <span>Location (for weather)</span>
+                            <input type="text" class="config-input" id="locationInput" placeholder="Auto-detected">
+                        </label>
+                        <label class="config-label">
+                            <span>Temperature Unit</span>
+                            <select class="config-select" id="tempUnit">
+                                <option value="celsius" selected>Celsius (°C)</option>
+                                <option value="fahrenheit">Fahrenheit (°F)</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="config-actions">
+                    <button class="config-btn save-btn" id="saveConfig">
+                        <span>💾</span> Save Configuration
+                    </button>
+                    <button class="config-btn reset-btn" id="resetConfig">
+                        <span>🔄</span> Reset to Defaults
+                    </button>
+                    <button class="config-btn export-btn" id="exportConfig">
+                        <span>📤</span> Export Settings
+                    </button>
+                    <button class="config-btn import-btn" id="importConfig">
+                        <span>📥</span> Import Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Crop Wiki Modal -->
+        <div class="crop-wiki-overlay" id="cropWikiOverlay">
+            <div class="crop-wiki-modal">
+                <button class="crop-wiki-close" id="cropWikiClose">✕</button>
+                <div class="crop-wiki-header">
+                    <span class="crop-wiki-icon" id="cropWikiIcon">🌾</span>
+                    <h2 class="crop-wiki-title" id="cropWikiTitle">Crop Information</h2>
+                </div>
+                <div class="crop-wiki-content" id="cropWikiContent">
+                    <div class="wiki-loading">Loading crop information...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Alert Overlay -->
+        <div class="emergency-overlay" id="emergencyOverlay">
+            <div class="emergency-modal">
+                <div class="emergency-icon" id="emergencyIcon">⚠️</div>
+                <h2 class="emergency-title" id="emergencyTitle">EMERGENCY ALERT</h2>
+                <p class="emergency-message" id="emergencyMessage">Emergency detected!</p>
+                <button class="btn btn-acknowledge" id="acknowledgeBtn">
+                    <span class="btn-icon">✓</span>
+                    ACKNOWLEDGE
+                </button>
+            </div>
+        </div>
+
+        <!-- AI Assistant Open Button -->
+        <button class="ai-open-btn" id="aiOpenBtn" title="Open AI Assistant">
+            <span class="ai-open-icon">🤖</span>
+            <span class="ai-open-text">AI</span>
+        </button>
+
+        <!-- AI Assistant Widget -->
+        <div class="ai-assistant" id="aiAssistant">
+            <div class="ai-header">
+                <div class="ai-avatar">🤖</div>
+                <div class="ai-info">
+                    <h3 class="ai-name">SOS AI</h3>
+                    <div class="ai-status" id="aiStatus"></div>
+                </div>
+                <button class="ai-mode-selector" id="aiModeSelector" title="Switch AI Mode">
+                    <span class="mode-icon">⚡</span>
+                    <span class="mode-text">SOS AI</span>
+                </button>
+                <button class="ai-clear-chat" id="aiClearChat" title="Clear chat history">🗑️</button>
+                <button class="ai-close-btn" id="aiCloseBtn" title="Close AI Assistant">✕</button>
+            </div>
+            
+            <!-- AI Mode Selection Menu -->
+            <div class="ai-mode-menu" id="aiModeMenu">
+                <div class="mode-menu-header">Select AI Mode</div>
+                <button class="mode-option" data-mode="sos">
+                    <span class="mode-option-icon">⚡</span>
+                    <div class="mode-option-info">
+                        <div class="mode-option-title">SOS AI (Offline)</div>
+                        <div class="mode-option-desc">Fast responses, works without internet</div>
+                    </div>
+                    <span class="mode-check">✓</span>
+                </button>
+                <button class="mode-option" data-mode="gemini">
+                    <span class="mode-option-icon">🌟</span>
+                    <div class="mode-option-info">
+                        <div class="mode-option-title">Gemini AI (Online)</div>
+                        <div class="mode-option-desc">Advanced AI, requires internet & API key</div>
+                    </div>
+                    <span class="mode-check">✓</span>
+                </button>
+                
+                <!-- API Key Management Section -->
+                <div class="api-key-section">
+                    <div class="api-key-header">
+                        <span class="api-key-icon">🔑</span>
+                        <span class="api-key-title">Gemini API Key</span>
+                    </div>
+                    <div class="api-key-status" id="apiKeyStatus">
+                        <span class="api-status-text">No API key set</span>
+                    </div>
+                    <div class="api-key-actions">
+                        <button class="api-key-btn" id="setApiKeyBtn">
+                            <span>🔧</span> Set Key
+                        </button>
+                        <button class="api-key-btn" id="viewApiKeyBtn" style="display: none;">
+                            <span>👁️</span> View
+                        </button>
+                        <button class="api-key-btn danger" id="removeApiKeyBtn" style="display: none;">
+                            <span>🗑️</span> Remove
+                        </button>
+                    </div>
+                    <div class="api-key-info">
+                        <small>Get your free API key from: <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a></small>
+                    </div>
+                </div>
+                
+                <div class="mode-menu-footer">
+                    <small>Type <code>#gemini</code> in chat to switch quickly</small>
+                </div>
+            </div>
+            <div class="ai-body" id="aiBody">
+                <div class="ai-chat" id="aiChat">
+                    <div class="ai-message ai-assistant-message">
+                        <div class="message-avatar">🤖</div>
+                        <div class="message-content">
+                            <strong>Hello!</strong> I'm your SOS Connect Pro AI Assistant. I can help you with:
+                            <br>• Serial connection issues
+                            <br>• Weather interpretation
+                            <br>• Crop recommendations
+                            <br>• Emergency alerts
+                            <br>• Data analysis
+                            <br><br>Just type your question below!
+                        </div>
+                    </div>
+                </div>
+                <div class="ai-input-container">
+                    <input type="text" class="ai-input" id="aiInput" placeholder="Ask me anything..." aria-label="Chat input">
+                    <button class="ai-send-btn" id="aiSendBtn">
+                        <span>➤</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Center -->
+        <div class="notification-center" id="notificationCenter">
+            <button class="notification-bell" id="notificationBell" aria-label="Open notifications" aria-haspopup="true" aria-expanded="false">
+                <span class="bell-icon">🔔</span>
+                <span class="notification-badge" id="notificationBadge">0</span>
+            </button>
+            <div class="notification-panel" id="notificationPanel">
+                <div class="notification-header">
+                    <h3>📬 Notifications</h3>
+                    <button class="clear-notifications" id="clearNotifications">Clear All</button>
+                </div>
+                <div class="notification-list" id="notificationList">
+                    <div class="no-notifications">No notifications yet</div>
+                </div>
+            </div>
+        </div>
+        </div> <!-- Close main-content-area -->
+    </div> <!-- Close container -->
+
+    <!-- Audio element for connection sound -->
+    <audio id="connectionSound" preload="auto">
+        <source src="./sounds/connect.mp3" type="audio/mpeg">
+        <source src="./sounds/connect.ogg" type="audio/ogg">
+        <source src="./sounds/connect.wav" type="audio/wav">
+    </audio>
+
+    <script 
+        src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" 
+        defer 
+        onerror="handleChartJSError()">
+    </script>
+    <script>
+        function handleChartJSError() {
+            console.error('Failed to load Chart.js from CDN');
+            const chartContainer = document.getElementById('hourlyWeatherChart');
+            if (chartContainer && chartContainer.parentElement) {
+                chartContainer.parentElement.innerHTML = '<p style="color: #ef4444; text-align: center; padding: 20px;">Weather charts unavailable - CDN loading failed</p>';
+            }
+        }
+    </script>
+    <script src="script.js" defer></script>
+</body>
+</html>
