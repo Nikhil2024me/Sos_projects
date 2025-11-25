@@ -2458,7 +2458,7 @@ class SerialMonitor {
         }
     }
 
-    // Switch main tabs (Terminal, Weather, Config)
+    // Switch main tabs (Terminal, Weather, Emergency, Analytics, Config)
     switchMainTab(tabName) {
         // Update tab buttons (both main-tab and sidebar-item)
         document.querySelectorAll('.main-tab, .sidebar-item').forEach(tab => {
@@ -2475,12 +2475,18 @@ class SerialMonitor {
             content.classList.remove('active');
         });
 
-        if (tabName === 'terminal') {
-            document.getElementById('terminalTab')?.classList.add('active');
-        } else if (tabName === 'weather') {
-            document.getElementById('weatherTab')?.classList.add('active');
-        } else if (tabName === 'config') {
-            document.getElementById('configTab')?.classList.add('active');
+        // Map tab names to their content IDs
+        const tabContentMap = {
+            'terminal': 'terminalTab',
+            'weather': 'weatherTab',
+            'emergency': 'emergencyTab',
+            'analytics': 'analyticsTab',
+            'config': 'configTab'
+        };
+
+        const contentId = tabContentMap[tabName];
+        if (contentId) {
+            document.getElementById(contentId)?.classList.add('active');
         }
 
         // Save last active tab
