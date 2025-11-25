@@ -43,15 +43,23 @@
                 <div class="sidebar-logo-text">Connect Pro</div>
             </div>
             <nav class="sidebar-nav">
-                <button class="sidebar-item active" data-tab="terminal">
+                <button class="sidebar-item active" data-tab="terminal" data-i18n="nav_terminal">
                     <span class="sidebar-item-icon">💻</span>
                     <span>Terminal</span>
                 </button>
-                <button class="sidebar-item" data-tab="weather">
+                <button class="sidebar-item" data-tab="weather" data-i18n="nav_weather">
                     <span class="sidebar-item-icon">🌤️</span>
                     <span>Weather & Sensors</span>
                 </button>
-                <button class="sidebar-item" data-tab="config">
+                <button class="sidebar-item" data-tab="emergency" data-i18n="nav_emergency">
+                    <span class="sidebar-item-icon">🚨</span>
+                    <span>Emergency</span>
+                </button>
+                <button class="sidebar-item" data-tab="analytics" data-i18n="nav_analytics">
+                    <span class="sidebar-item-icon">📊</span>
+                    <span>Analytics</span>
+                </button>
+                <button class="sidebar-item" data-tab="config" data-i18n="nav_config">
                     <span class="sidebar-item-icon">⚙️</span>
                     <span>Configuration</span>
                 </button>
@@ -199,6 +207,14 @@
             <button class="main-tab" data-tab="weather" aria-pressed="false">
                 <span class="tab-icon">🌤️</span>
                 <span class="tab-label">Weather & Sensors</span>
+            </button>
+            <button class="main-tab" data-tab="emergency" aria-pressed="false">
+                <span class="tab-icon">🚨</span>
+                <span class="tab-label">Emergency</span>
+            </button>
+            <button class="main-tab" data-tab="analytics" aria-pressed="false">
+                <span class="tab-icon">📊</span>
+                <span class="tab-label">Analytics</span>
             </button>
             <button class="main-tab" data-tab="config" aria-pressed="false">
                 <span class="tab-icon">⚙️</span>
@@ -439,6 +455,32 @@
                     </div>
                     <div class="trends-canvas">
                         <canvas id="sensorTrendsCanvas" width="600" height="300" aria-label="Sensor trends chart" role="img"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location Map Card -->
+            <div class="grid-item" style="grid-column: span 2;">
+                <div class="card-inner">
+                    <div class="map-widget-header" style="border: none; padding: 0; background: none; margin-bottom: 15px;">
+                        <div class="map-widget-title">
+                            <span class="map-widget-title-icon">📍</span>
+                            <span>Device Location</span>
+                        </div>
+                    </div>
+                    <div class="map-container" style="height: 250px; border-radius: 12px; overflow: hidden;">
+                        <div id="locationMap" style="height: 100%; width: 100%;"></div>
+                    </div>
+                    <div class="map-controls" style="padding: 10px 0; background: none;">
+                        <button class="map-control-btn" id="startTrackingBtn">
+                            <span>📡</span> Start Tracking
+                        </button>
+                        <button class="map-control-btn" id="showTrailBtn">
+                            <span>🛤️</span> Show Trail
+                        </button>
+                        <button class="map-control-btn" id="centerMapBtn">
+                            <span>🎯</span> Center
+                        </button>
                     </div>
                 </div>
             </div>
@@ -721,6 +763,236 @@
                     <button class="config-btn import-btn" id="importConfig">
                         <span>📥</span> Import Settings
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Tab Content -->
+        <div class="tab-content" id="emergencyTab">
+            <div class="emergency-dashboard">
+                <!-- Emergency Contacts Panel -->
+                <div class="emergency-contacts-panel">
+                    <div class="emergency-contacts-header">
+                        <div class="emergency-contacts-title">
+                            <span>📞</span>
+                            <span>Emergency Contacts</span>
+                        </div>
+                        <button class="add-contact-btn" id="addContactBtn">+ Add Contact</button>
+                    </div>
+                    <div class="contact-list" id="contactList">
+                        <!-- Contacts will be populated dynamically -->
+                        <div class="no-contacts-message" style="text-align: center; color: rgba(255,255,255,0.6); padding: 20px;">
+                            No emergency contacts added yet. Click "Add Contact" to add your first emergency contact.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Dial Services -->
+                <div class="emergency-contacts-panel" style="margin-top: 20px;">
+                    <div class="emergency-contacts-header">
+                        <div class="emergency-contacts-title">
+                            <span>🚨</span>
+                            <span>Emergency Services</span>
+                        </div>
+                    </div>
+                    <div class="relay-controls" style="margin-top: 15px;">
+                        <button class="relay-btn" onclick="window.emergencyManager?.dialEmergencyService('universal')">
+                            <span style="font-size: 32px;">📞</span>
+                            <span class="relay-label">112 (Universal)</span>
+                        </button>
+                        <button class="relay-btn" onclick="window.emergencyManager?.dialEmergencyService('police')">
+                            <span style="font-size: 32px;">👮</span>
+                            <span class="relay-label">Police (100)</span>
+                        </button>
+                        <button class="relay-btn" onclick="window.emergencyManager?.dialEmergencyService('ambulance')">
+                            <span style="font-size: 32px;">🚑</span>
+                            <span class="relay-label">Ambulance (102)</span>
+                        </button>
+                        <button class="relay-btn" onclick="window.emergencyManager?.dialEmergencyService('fire')">
+                            <span style="font-size: 32px;">🚒</span>
+                            <span class="relay-label">Fire (101)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Panic Button -->
+                <div class="panic-button-container" style="margin-top: 30px;">
+                    <h3 style="color: #ef4444; margin-bottom: 15px; text-align: center;">Emergency Panic Button</h3>
+                    <p style="text-align: center; color: rgba(255,255,255,0.6); margin-bottom: 20px; font-size: 0.9rem;">
+                        Press and hold for 3 seconds to trigger emergency alert
+                    </p>
+                    <button class="panic-button" id="panicButton">
+                        <span>SOS</span>
+                    </button>
+                    <p style="text-align: center; color: rgba(255,255,255,0.5); margin-top: 15px; font-size: 0.8rem;">
+                        This will notify all your emergency contacts with your location
+                    </p>
+                </div>
+
+                <!-- Location Sharing -->
+                <div class="map-widget" style="margin-top: 30px;">
+                    <div class="map-widget-header">
+                        <div class="map-widget-title">
+                            <span class="map-widget-title-icon">📍</span>
+                            <span>Your Location</span>
+                        </div>
+                    </div>
+                    <div class="map-container">
+                        <div id="emergencyMap" style="height: 100%; width: 100%;"></div>
+                    </div>
+                    <div class="map-controls">
+                        <button class="map-control-btn" id="shareLocationBtn">
+                            <span>📤</span> Share Location
+                        </button>
+                        <button class="map-control-btn" id="refreshLocationBtn">
+                            <span>🔄</span> Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Tab Content -->
+        <div class="tab-content" id="analyticsTab">
+            <div class="analytics-dashboard" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                
+                <!-- Summary Stats -->
+                <div class="analytics-card">
+                    <div class="analytics-card-header">
+                        <div class="analytics-card-title">
+                            <span>📈</span>
+                            <span>Data Summary</span>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px;">
+                        <div class="analytics-stat">
+                            <div class="analytics-stat-value" id="analyticsReadings">0</div>
+                            <div class="analytics-stat-label">Total Readings</div>
+                        </div>
+                        <div class="analytics-stat">
+                            <div class="analytics-stat-value" id="analyticsUptime">0h</div>
+                            <div class="analytics-stat-label">Session Time</div>
+                        </div>
+                        <div class="analytics-stat">
+                            <div class="analytics-stat-value" id="analyticsAlerts">0</div>
+                            <div class="analytics-stat-label">Alerts Today</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sensor Analytics -->
+                <div class="analytics-card">
+                    <div class="analytics-card-header">
+                        <div class="analytics-card-title">
+                            <span>🌡️</span>
+                            <span>Temperature Analytics</span>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px;">
+                        <div class="analytics-stat">
+                            <div class="analytics-stat-value" id="tempMin">--</div>
+                            <div class="analytics-stat-label">Min</div>
+                        </div>
+                        <div class="analytics-stat">
+                            <div class="analytics-stat-value" id="tempMax">--</div>
+                            <div class="analytics-stat-label">Max</div>
+                        </div>
+                        <div class="analytics-stat">
+                            <div class="analytics-stat-value" id="tempAvg">--</div>
+                            <div class="analytics-stat-label">Average</div>
+                        </div>
+                    </div>
+                    <div class="analytics-trend stable" id="tempTrend" style="margin-top: 10px;">
+                        <span>→</span> Stable
+                    </div>
+                </div>
+
+                <!-- Humidity Analytics -->
+                <div class="analytics-card">
+                    <div class="analytics-card-header">
+                        <div class="analytics-card-title">
+                            <span>💧</span>
+                            <span>Humidity Analytics</span>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px;">
+                        <div class="analytics-stat">
+                            <div class="analytics-stat-value" id="humidityMin">--</div>
+                            <div class="analytics-stat-label">Min</div>
+                        </div>
+                        <div class="analytics-stat">
+                            <div class="analytics-stat-value" id="humidityMax">--</div>
+                            <div class="analytics-stat-label">Max</div>
+                        </div>
+                        <div class="analytics-stat">
+                            <div class="analytics-stat-value" id="humidityAvg">--</div>
+                            <div class="analytics-stat-label">Average</div>
+                        </div>
+                    </div>
+                    <div class="analytics-trend stable" id="humidityTrend" style="margin-top: 10px;">
+                        <span>→</span> Stable
+                    </div>
+                </div>
+
+                <!-- Export Options -->
+                <div class="analytics-card" style="grid-column: span 2;">
+                    <div class="analytics-card-header">
+                        <div class="analytics-card-title">
+                            <span>📥</span>
+                            <span>Data Export</span>
+                        </div>
+                    </div>
+                    <p style="color: rgba(255,255,255,0.6); margin: 15px 0; font-size: 0.9rem;">
+                        Export your sensor data and activity logs in various formats for analysis or backup.
+                    </p>
+                    <div class="export-buttons">
+                        <button class="export-btn csv" id="exportCSVBtn">
+                            <span>📄</span> Export CSV
+                        </button>
+                        <button class="export-btn json" id="exportJSONBtn">
+                            <span>📋</span> Export JSON
+                        </button>
+                        <button class="export-btn excel" id="exportExcelBtn">
+                            <span>📊</span> Export Excel
+                        </button>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <label style="color: rgba(255,255,255,0.7); font-size: 0.9rem;">Time Range:</label>
+                        <select id="exportTimeRange" style="margin-left: 10px; padding: 8px 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white;">
+                            <option value="hour">Last Hour</option>
+                            <option value="day" selected>Last 24 Hours</option>
+                            <option value="week">Last Week</option>
+                            <option value="month">Last Month</option>
+                            <option value="all">All Data</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Activity Log -->
+                <div class="activity-log-panel" style="grid-column: span 2;">
+                    <div class="activity-log-header">
+                        <div class="activity-log-title">
+                            <span>📋</span>
+                            <span>Activity Log</span>
+                        </div>
+                        <div class="activity-log-filters">
+                            <button class="log-filter-btn active" data-filter="all">All</button>
+                            <button class="log-filter-btn" data-filter="connection">Connection</button>
+                            <button class="log-filter-btn" data-filter="sensor">Sensor</button>
+                            <button class="log-filter-btn" data-filter="error">Errors</button>
+                        </div>
+                    </div>
+                    <div class="activity-log-list" id="activityLogList">
+                        <!-- Activity entries will be populated dynamically -->
+                        <div class="log-entry">
+                            <span class="log-icon">✅</span>
+                            <div class="log-content">
+                                <div class="log-action">Application started</div>
+                                <div class="log-details">SOS Connect Pro initialized</div>
+                            </div>
+                            <span class="log-timestamp">Just now</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1053,6 +1325,239 @@
                     online: navigator.onLine
                 });
             }
+
+            // Initialize Maps when Weather tab is shown (lazy loading)
+            let weatherMapInitialized = false;
+            let emergencyMapInitialized = false;
+
+            function initializeWeatherMap() {
+                if (weatherMapInitialized || !window.locationManager || typeof L === 'undefined') return;
+                try {
+                    window.locationManager.initMap('locationMap');
+                    weatherMapInitialized = true;
+                    console.log('[App] Weather map initialized');
+                } catch (e) {
+                    console.error('[App] Weather map init error:', e);
+                }
+            }
+
+            function initializeEmergencyMap() {
+                if (emergencyMapInitialized || typeof L === 'undefined') return;
+                try {
+                    const emergencyMap = L.map('emergencyMap').setView([20.5937, 78.9629], 5);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(emergencyMap);
+                    
+                    // Get current location for emergency map
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition((pos) => {
+                            const { latitude, longitude } = pos.coords;
+                            emergencyMap.setView([latitude, longitude], 15);
+                            L.marker([latitude, longitude]).addTo(emergencyMap)
+                                .bindPopup('Your Location').openPopup();
+                        });
+                    }
+                    emergencyMapInitialized = true;
+                    console.log('[App] Emergency map initialized');
+                } catch (e) {
+                    console.error('[App] Emergency map init error:', e);
+                }
+            }
+
+            // Tab change observer for lazy loading maps
+            const tabObserver = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        const target = mutation.target;
+                        if (target.classList.contains('active')) {
+                            if (target.id === 'weatherTab' && !weatherMapInitialized) {
+                                setTimeout(initializeWeatherMap, 100);
+                            }
+                            if (target.id === 'emergencyTab' && !emergencyMapInitialized) {
+                                setTimeout(initializeEmergencyMap, 100);
+                            }
+                        }
+                    }
+                });
+            });
+
+            // Observe tab content changes
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tabObserver.observe(tab, { attributes: true });
+            });
+
+            // Map Control Buttons
+            document.getElementById('startTrackingBtn')?.addEventListener('click', () => {
+                if (window.locationManager) {
+                    if (window.locationManager.isTracking) {
+                        window.locationManager.stopTracking();
+                        document.getElementById('startTrackingBtn').innerHTML = '<span>📡</span> Start Tracking';
+                    } else {
+                        window.locationManager.startTracking();
+                        document.getElementById('startTrackingBtn').innerHTML = '<span>🛑</span> Stop Tracking';
+                    }
+                }
+            });
+
+            document.getElementById('showTrailBtn')?.addEventListener('click', () => {
+                if (window.locationManager) {
+                    window.locationManager.drawTrail();
+                }
+            });
+
+            document.getElementById('centerMapBtn')?.addEventListener('click', () => {
+                if (window.locationManager) {
+                    window.locationManager.getCurrentLocation();
+                }
+            });
+
+            document.getElementById('shareLocationBtn')?.addEventListener('click', async () => {
+                if (window.locationManager) {
+                    const shared = await window.locationManager.shareLocation('Emergency! I need help.');
+                    if (shared) {
+                        window.notificationsManager?.show({
+                            title: 'Location Shared',
+                            body: 'Your location has been shared',
+                            icon: '📍',
+                            type: 'success'
+                        });
+                    }
+                }
+            });
+
+            document.getElementById('refreshLocationBtn')?.addEventListener('click', () => {
+                if (window.locationManager) {
+                    window.locationManager.getCurrentLocation();
+                }
+            });
+
+            // Panic Button
+            const panicButton = document.getElementById('panicButton');
+            let panicTimeout = null;
+
+            panicButton?.addEventListener('mousedown', () => {
+                panicButton.classList.add('counting');
+                panicTimeout = setTimeout(() => {
+                    if (window.emergencyManager) {
+                        window.emergencyManager.triggerEmergency('PANIC', 'Manual panic button activated');
+                    }
+                    panicButton.classList.remove('counting');
+                }, 3000);
+            });
+
+            panicButton?.addEventListener('mouseup', () => {
+                if (panicTimeout) {
+                    clearTimeout(panicTimeout);
+                    panicTimeout = null;
+                }
+                panicButton.classList.remove('counting');
+            });
+
+            panicButton?.addEventListener('mouseleave', () => {
+                if (panicTimeout) {
+                    clearTimeout(panicTimeout);
+                    panicTimeout = null;
+                }
+                panicButton.classList.remove('counting');
+            });
+
+            // Export buttons
+            document.getElementById('exportCSVBtn')?.addEventListener('click', async () => {
+                if (window.dataAnalyticsManager) {
+                    const timeRange = document.getElementById('exportTimeRange')?.value || 'day';
+                    const report = await window.dataAnalyticsManager.generateReport(timeRange);
+                    // Export terminal log as CSV
+                    const logs = window.activityLogManager?.getLogs({ limit: 1000 }) || [];
+                    window.dataAnalyticsManager.exportToCSV(logs, `activity-log-${new Date().toISOString().split('T')[0]}.csv`);
+                }
+            });
+
+            document.getElementById('exportJSONBtn')?.addEventListener('click', async () => {
+                if (window.dataAnalyticsManager) {
+                    const logs = window.activityLogManager?.getLogs({ limit: 1000 }) || [];
+                    window.dataAnalyticsManager.exportToJSON(logs, `activity-log-${new Date().toISOString().split('T')[0]}.json`);
+                }
+            });
+
+            document.getElementById('exportExcelBtn')?.addEventListener('click', async () => {
+                if (window.dataAnalyticsManager) {
+                    const logs = window.activityLogManager?.getLogs({ limit: 1000 }) || [];
+                    window.dataAnalyticsManager.exportToExcel(logs, `activity-log-${new Date().toISOString().split('T')[0]}.xls`);
+                }
+            });
+
+            // Activity log filter buttons
+            document.querySelectorAll('.log-filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.log-filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const filter = btn.dataset.filter;
+                    updateActivityLogDisplay(filter);
+                });
+            });
+
+            function updateActivityLogDisplay(filter = 'all') {
+                if (!window.activityLogManager) return;
+                const logs = filter === 'all' 
+                    ? window.activityLogManager.getLogs({ limit: 50 })
+                    : window.activityLogManager.getLogsByCategory(filter, 50);
+                
+                const container = document.getElementById('activityLogList');
+                if (!container) return;
+
+                if (logs.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.6); padding: 20px;">No activity logs found</div>';
+                    return;
+                }
+
+                container.innerHTML = logs.map(log => `
+                    <div class="log-entry ${log.level}">
+                        <span class="log-icon">${getLogIcon(log.category)}</span>
+                        <div class="log-content">
+                            <div class="log-action">${escapeHtml(log.action)}</div>
+                            <div class="log-details">${escapeHtml(JSON.stringify(log.details).substring(0, 100))}</div>
+                        </div>
+                        <span class="log-timestamp">${formatRelativeTime(log.timestamp)}</span>
+                    </div>
+                `).join('');
+            }
+
+            function getLogIcon(category) {
+                const icons = {
+                    connection: '🔌',
+                    sensor: '📡',
+                    user: '👤',
+                    system: '⚙️',
+                    error: '❌',
+                    warning: '⚠️',
+                    emergency: '🚨'
+                };
+                return icons[category] || '📋';
+            }
+
+            function escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function formatRelativeTime(timestamp) {
+                const now = new Date();
+                const date = new Date(timestamp);
+                const diff = Math.floor((now - date) / 1000);
+                
+                if (diff < 60) return 'Just now';
+                if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+                if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+                return `${Math.floor(diff / 86400)}d ago`;
+            }
+
+            // Update activity log on new entries
+            window.addEventListener('activity-logged', () => {
+                const activeFilter = document.querySelector('.log-filter-btn.active')?.dataset.filter || 'all';
+                updateActivityLogDisplay(activeFilter);
+            });
 
             console.log('[App] SOS Connect Pro initialized with features:', {
                 notifications: !!window.notificationsManager,
