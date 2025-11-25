@@ -71,11 +71,16 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     
+    // List of API hostnames that should use network-first strategy
+    const apiHosts = [
+        'api.open-meteo.com',
+        'api.bigdatacloud.net',
+        'generativelanguage.googleapis.com'
+    ];
+    
     // Handle API requests differently (network first)
-    if (url.pathname.includes('/api/') || 
-        url.hostname.includes('api.open-meteo.com') ||
-        url.hostname.includes('api.bigdatacloud.net') ||
-        url.hostname.includes('generativelanguage.googleapis.com')) {
+    // Use exact hostname matching to prevent subdomain attacks
+    if (url.pathname.includes('/api/') || apiHosts.includes(url.hostname)) {
         event.respondWith(networkFirst(request));
         return;
     }
