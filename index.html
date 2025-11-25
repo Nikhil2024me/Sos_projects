@@ -2,9 +2,37 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SOS Connect Pro - Serial Monitor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>SOS Connect Pro - IoT Monitoring & Emergency Response Platform</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="IoT Monitoring and Emergency Response Platform with real-time sensor data, weather analysis, and emergency features">
+    <meta name="theme-color" content="#e94560">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SOS Connect">
+    <meta name="application-name" content="SOS Connect Pro">
+    <meta name="msapplication-TileColor" content="#2d1b3d">
+    <meta name="msapplication-config" content="none">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect fill='%23e94560' width='32' height='32' rx='4'/><text x='16' y='22' font-size='14' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle'>SOS</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%23e94560' width='180' height='180' rx='22'/><text x='90' y='115' font-size='70' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle'>SOS</text></svg>">
+    
+    <!-- Leaflet.js for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    
+    <!-- Stylesheets -->
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/features.css">
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://api.open-meteo.com">
+    <link rel="preconnect" href="https://api.bigdatacloud.net">
+    <link rel="dns-prefetch" href="https://unpkg.com">
 </head>
 <body>
     <div class="container">
@@ -845,6 +873,36 @@
         <source src="./sounds/connect.wav" type="audio/wav">
     </audio>
 
+    <!-- Offline Indicator -->
+    <div class="offline-indicator" id="offlineIndicator">
+        <div class="offline-indicator-text">
+            <span>📡</span> You are currently offline. Some features may be unavailable.
+        </div>
+    </div>
+
+    <!-- PWA Install Prompt -->
+    <div class="pwa-install-prompt hidden" id="pwaInstallPrompt">
+        <div class="pwa-install-icon">📱</div>
+        <div class="pwa-install-content">
+            <div class="pwa-install-title">Install SOS Connect Pro</div>
+            <div class="pwa-install-text">Add to home screen for a better experience</div>
+        </div>
+        <div class="pwa-install-actions">
+            <button class="pwa-install-btn primary" id="pwaInstallBtn">Install</button>
+            <button class="pwa-install-btn secondary" id="pwaInstallDismiss">Later</button>
+        </div>
+    </div>
+
+    <!-- Voice Control Button -->
+    <button class="voice-control-btn" id="voiceControlBtn" aria-label="Voice Commands" title="Click to speak a command">
+        🎤
+    </button>
+    <div class="voice-transcript hidden" id="voiceTranscript">
+        <span class="voice-transcript-text" id="voiceTranscriptText">Listening...</span>
+    </div>
+
+    <!-- External Libraries -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
     <script 
         src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" 
         defer 
@@ -859,6 +917,154 @@
             }
         }
     </script>
+
+    <!-- Feature Modules -->
+    <script src="js/features/notifications.js" defer></script>
+    <script src="js/features/voice-commands.js" defer></script>
+    <script src="js/features/data-analytics.js" defer></script>
+    <script src="js/features/location-map.js" defer></script>
+    <script src="js/features/device-control.js" defer></script>
+    <script src="js/features/emergency-system.js" defer></script>
+    <script src="js/features/activity-log.js" defer></script>
+    <script src="js/features/i18n.js" defer></script>
+
+    <!-- Main Application Script -->
     <script src="script.js" defer></script>
+
+    <!-- Service Worker Registration & Feature Initialization -->
+    <script>
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('[App] Service Worker registered:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('[App] Service Worker registration failed:', error);
+                    });
+            });
+        }
+
+        // PWA Install Prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const installPrompt = document.getElementById('pwaInstallPrompt');
+            if (installPrompt) {
+                installPrompt.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('pwaInstallBtn')?.addEventListener('click', async () => {
+            const installPrompt = document.getElementById('pwaInstallPrompt');
+            if (installPrompt) installPrompt.classList.add('hidden');
+            
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log('[App] Install prompt outcome:', outcome);
+                deferredPrompt = null;
+            }
+        });
+
+        document.getElementById('pwaInstallDismiss')?.addEventListener('click', () => {
+            const installPrompt = document.getElementById('pwaInstallPrompt');
+            if (installPrompt) installPrompt.classList.add('hidden');
+        });
+
+        // Offline/Online Detection
+        function updateOnlineStatus() {
+            const indicator = document.getElementById('offlineIndicator');
+            if (indicator) {
+                if (navigator.onLine) {
+                    indicator.classList.remove('show');
+                } else {
+                    indicator.classList.add('show');
+                }
+            }
+        }
+
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        updateOnlineStatus();
+
+        // Initialize Feature Managers after DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize feature managers
+            window.notificationsManager = window.NotificationsManager ? new NotificationsManager() : null;
+            window.voiceCommandsManager = window.VoiceCommandsManager ? new VoiceCommandsManager() : null;
+            window.dataAnalyticsManager = window.DataAnalyticsManager ? new DataAnalyticsManager() : null;
+            window.locationManager = window.LocationMapManager ? new LocationMapManager() : null;
+            window.deviceControlManager = window.DeviceControlManager ? new DeviceControlManager() : null;
+            window.emergencyManager = window.EmergencySystemManager ? new EmergencySystemManager() : null;
+            window.activityLogManager = window.ActivityLogManager ? new ActivityLogManager() : null;
+            window.i18nManager = window.I18nManager ? new I18nManager() : null;
+
+            // Request notification permission after user interaction
+            if (window.notificationsManager) {
+                document.body.addEventListener('click', () => {
+                    if (Notification.permission === 'default') {
+                        window.notificationsManager.init();
+                    }
+                }, { once: true });
+            }
+
+            // Voice Control Button
+            const voiceBtn = document.getElementById('voiceControlBtn');
+            const voiceTranscript = document.getElementById('voiceTranscript');
+            
+            if (voiceBtn && window.voiceCommandsManager) {
+                voiceBtn.addEventListener('click', () => {
+                    if (window.voiceCommandsManager.isListening) {
+                        window.voiceCommandsManager.stopListening();
+                        voiceBtn.classList.remove('listening');
+                        voiceTranscript?.classList.add('hidden');
+                    } else {
+                        window.voiceCommandsManager.startListening();
+                        voiceBtn.classList.add('listening');
+                        voiceTranscript?.classList.remove('hidden');
+                    }
+                });
+
+                window.addEventListener('voice-listening-end', () => {
+                    voiceBtn.classList.remove('listening');
+                    setTimeout(() => voiceTranscript?.classList.add('hidden'), 2000);
+                });
+
+                window.addEventListener('voice-transcript', (e) => {
+                    const transcriptText = document.getElementById('voiceTranscriptText');
+                    if (transcriptText) {
+                        transcriptText.textContent = e.detail.final || e.detail.interim || 'Listening...';
+                        transcriptText.className = e.detail.final ? 'voice-transcript-text final' : 'voice-transcript-text';
+                    }
+                });
+            } else if (voiceBtn) {
+                // Hide voice button if not supported
+                voiceBtn.style.display = 'none';
+            }
+
+            // Log app start
+            if (window.activityLogManager) {
+                window.activityLogManager.logSystem('Application started', {
+                    userAgent: navigator.userAgent,
+                    language: navigator.language,
+                    online: navigator.onLine
+                });
+            }
+
+            console.log('[App] SOS Connect Pro initialized with features:', {
+                notifications: !!window.notificationsManager,
+                voice: !!window.voiceCommandsManager,
+                analytics: !!window.dataAnalyticsManager,
+                location: !!window.locationManager,
+                deviceControl: !!window.deviceControlManager,
+                emergency: !!window.emergencyManager,
+                activityLog: !!window.activityLogManager,
+                i18n: !!window.i18nManager
+            });
+        });
+    </script>
 </body>
 </html>
