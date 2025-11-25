@@ -1351,12 +1351,19 @@
                     
                     // Get current location for emergency map
                     if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition((pos) => {
-                            const { latitude, longitude } = pos.coords;
-                            emergencyMap.setView([latitude, longitude], 15);
-                            L.marker([latitude, longitude]).addTo(emergencyMap)
-                                .bindPopup('Your Location').openPopup();
-                        });
+                        navigator.geolocation.getCurrentPosition(
+                            (pos) => {
+                                const { latitude, longitude } = pos.coords;
+                                emergencyMap.setView([latitude, longitude], 15);
+                                L.marker([latitude, longitude]).addTo(emergencyMap)
+                                    .bindPopup('Your Location').openPopup();
+                            },
+                            (error) => {
+                                console.warn('[App] Could not get location for emergency map:', error.message);
+                                // Keep default view if location unavailable
+                            },
+                            { enableHighAccuracy: true, timeout: 10000 }
+                        );
                     }
                     emergencyMapInitialized = true;
                     console.log('[App] Emergency map initialized');
@@ -1436,30 +1443,50 @@
             const panicButton = document.getElementById('panicButton');
             let panicTimeout = null;
 
-            panicButton?.addEventListener('mousedown', () => {
+            function startPanicCountdown() {
+                if (panicTimeout) return; // Already counting
                 panicButton.classList.add('counting');
                 panicTimeout = setTimeout(() => {
                     if (window.emergencyManager) {
                         window.emergencyManager.triggerEmergency('PANIC', 'Manual panic button activated');
                     }
                     panicButton.classList.remove('counting');
+                    panicTimeout = null;
                 }, 3000);
-            });
+            }
 
-            panicButton?.addEventListener('mouseup', () => {
+            function cancelPanicCountdown() {
                 if (panicTimeout) {
                     clearTimeout(panicTimeout);
                     panicTimeout = null;
                 }
-                panicButton.classList.remove('counting');
-            });
+                panicButton?.classList.remove('counting');
+            }
 
-            panicButton?.addEventListener('mouseleave', () => {
-                if (panicTimeout) {
-                    clearTimeout(panicTimeout);
-                    panicTimeout = null;
+            // Mouse events
+            panicButton?.addEventListener('mousedown', startPanicCountdown);
+            panicButton?.addEventListener('mouseup', cancelPanicCountdown);
+            panicButton?.addEventListener('mouseleave', cancelPanicCountdown);
+
+            // Touch events for mobile
+            panicButton?.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startPanicCountdown();
+            });
+            panicButton?.addEventListener('touchend', cancelPanicCountdown);
+            panicButton?.addEventListener('touchcancel', cancelPanicCountdown);
+
+            // Keyboard accessibility (Space or Enter key)
+            panicButton?.addEventListener('keydown', (e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    startPanicCountdown();
                 }
-                panicButton.classList.remove('counting');
+            });
+            panicButton?.addEventListener('keyup', (e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                    cancelPanicCountdown();
+                }
             });
 
             // Export buttons

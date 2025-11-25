@@ -200,9 +200,8 @@ class VoiceCommandsManager {
 
         if (!matched) {
             // Try to pass to AI assistant if available
-            if (window.serialMonitor && window.serialMonitor.sendAIMessage) {
+            if (window.serialMonitor && typeof window.serialMonitor.sendAIMessage === 'function') {
                 this.speak('Let me check with the AI assistant');
-                // Simulate AI query
                 window.dispatchEvent(new CustomEvent('voice-ai-query', { detail: { text } }));
             } else {
                 this.speak('Sorry, I didn\'t understand that command. Say "help" for available commands.');

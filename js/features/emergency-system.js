@@ -280,9 +280,8 @@ class EmergencySystemManager {
      */
     async sendSMSNotification(data) {
         // This would integrate with Twilio or similar service
-        // For now, log the attempt
-        console.log('[Emergency] SMS notification would be sent to:', data.phone);
-        console.log('[Emergency] Message:', this.formatEmergencyMessage(data));
+        // In production, this should make an API call to your backend
+        console.log('[Emergency] SMS notification prepared for contact:', data.contactName);
         
         // Simulate API call
         return new Promise((resolve) => {
@@ -295,8 +294,8 @@ class EmergencySystemManager {
      */
     async sendEmailNotification(data) {
         // This would integrate with SendGrid or similar service
-        console.log('[Emergency] Email notification would be sent to:', data.email);
-        console.log('[Emergency] Subject: EMERGENCY ALERT from SOS Connect Pro');
+        // In production, this should make an API call to your backend
+        console.log('[Emergency] Email notification prepared for contact:', data.contactName);
         
         // Simulate API call
         return new Promise((resolve) => {

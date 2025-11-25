@@ -288,11 +288,24 @@ class LocationMapManager {
             dashArray: '5, 5'
         }).addTo(this.map);
 
-        circle.bindPopup(`
-            <strong>${geofence.name}</strong><br>
-            Radius: ${geofence.radius}m<br>
-            <button onclick="window.locationManager?.removeGeofence('${geofence.id}')">Remove</button>
-        `);
+        // Create popup content safely using DOM methods
+        const popupContent = document.createElement('div');
+        const nameStrong = document.createElement('strong');
+        nameStrong.textContent = geofence.name;
+        popupContent.appendChild(nameStrong);
+        popupContent.appendChild(document.createElement('br'));
+        popupContent.appendChild(document.createTextNode(`Radius: ${geofence.radius}m`));
+        popupContent.appendChild(document.createElement('br'));
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = 'Remove';
+        removeBtn.style.cssText = 'margin-top: 5px; padding: 5px 10px; cursor: pointer;';
+        removeBtn.addEventListener('click', () => {
+            this.removeGeofence(geofence.id);
+        });
+        popupContent.appendChild(removeBtn);
+
+        circle.bindPopup(popupContent);
 
         geofence.layer = circle;
     }

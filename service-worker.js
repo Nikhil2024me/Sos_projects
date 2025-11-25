@@ -186,14 +186,15 @@ self.addEventListener('push', (event) => {
     
     const options = {
         body: data.body || data.message,
-        icon: '/manifest.json',
-        badge: '/manifest.json',
+        // Use data URI for notification icon
+        icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect fill='%23e94560' width='64' height='64' rx='8'/><text x='32' y='42' font-size='24' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle'>SOS</text></svg>",
+        badge: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle fill='%23e94560' cx='12' cy='12' r='12'/></svg>",
         tag: data.tag || 'sos-notification',
         data: data,
         vibrate: [100, 50, 100],
         actions: data.actions || [
-            { action: 'view', title: 'View', icon: '👁️' },
-            { action: 'dismiss', title: 'Dismiss', icon: '✕' }
+            { action: 'view', title: 'View' },
+            { action: 'dismiss', title: 'Dismiss' }
         ],
         requireInteraction: data.priority === 'high'
     };
