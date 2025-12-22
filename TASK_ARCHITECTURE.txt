@@ -1,0 +1,180 @@
+ESP32 SOS SYSTEM - FREERTOS TASK ARCHITECTURE
+==============================================
+
+┌──────────────────────────────────────────────────────────────────────┐
+│                          ESP32 DUAL CORE                              │
+│                                                                       │
+│  ┌─────────────────────────┐  ┌─────────────────────────────────┐  │
+│  │      CORE 0             │  │         CORE 1                   │  │
+│  │                         │  │                                   │  │
+│  │  ┌─────────────────┐   │  │  ┌──────────┐  ┌──────────┐     │  │
+│  │  │ SOS Logic Task  │   │  │  │ Display  │  │  LoRa    │     │  │
+│  │  │   Priority 3    │◄──┼──┼──┤   Task   │  │   Task   │     │  │
+│  │  │   (HIGHEST)     │   │  │  │Priority 1│  │Priority 2│     │  │
+│  │  │                 │   │  │  └────▲─────┘  └────▲─────┘     │  │
+│  │  │ State Machine   │   │  │       │             │           │  │
+│  │  │ Coordinator     │   │  │  ┌────┴─────┐  ┌────┴─────┐     │  │
+│  │  │ Decision Maker  │   │  │  │  Input   │  │  Power   │     │  │
+│  │  └────┬───▲────────┘   │  │  │   Task   │  │   Task   │     │  │
+│  │       │   │            │  │  │Priority 2│  │Priority 0│     │  │
+│  │       │   │            │  │  └────▲─────┘  └────▲─────┘     │  │
+│  └───────┼───┼────────────┘  └───────┼─────────────┼──────────┘  │
+│          │   │                       │             │             │
+└──────────┼───┼───────────────────────┼─────────────┼─────────────┘
+           │   │                       │             │
+           ▼   ▼                       ▼             ▼
+    ┌──────────────────────────────────────────────────────┐
+    │         INTER-TASK COMMUNICATION LAYER                │
+    ├──────────────────────────────────────────────────────┤
+    │  Queues:         displayQueue (10 items)             │
+    │                  loraQueue (5 items)                  │
+    │                  inputQueue (10 items)                │
+    │                                                       │
+    │  Event Group:    systemEvents (5 events)             │
+    │                  - EMERGENCY_TRIGGERED                │
+    │                  - SERVICE_CHANGED                    │
+    │                  - MESSAGE_SENT                       │
+    │                  - LORA_READY                         │
+    │                  - DISPLAY_READY                      │
+    │                                                       │
+    │  Mutexes:        tftMutex (Display protection)       │
+    │                  loraMutex (LoRa protection)          │
+    └──────────────────────────────────────────────────────┘
+                              │
+                              ▼
+    ┌──────────────────────────────────────────────────────┐
+    │              HARDWARE ABSTRACTION LAYER               │
+    ├──────────────────────────────────────────────────────┤
+    │  TFT Display (ILI9341) ◄── Mutex Protected           │
+    │  Touch (XPT2046)       ◄── Input Task                │
+    │  LoRa (SX1278)         ◄── Mutex Protected           │
+    │  Button (GPIO 12)      ◄── Input Task                │
+    │  Power Management      ◄── ESP32 Sleep API           │
+    └──────────────────────────────────────────────────────┘
+
+TASK FLOW DIAGRAM
+=================
+
+1. INPUT EVENT:
+   ┌──────┐     ┌──────────┐     ┌────────┐     ┌─────────┐
+   │Touch │ ──► │Input Task│ ──► │ Queue  │ ──► │SOS Logic│
+   │Button│     │(Debounce)│     │        │     │  Task   │
+   └──────┘     └──────────┘     └────────┘     └─────────┘
+
+2. DISPLAY UPDATE:
+   ┌─────────┐     ┌────────┐     ┌────────────┐     ┌───────┐
+   │SOS Logic│ ──► │ Queue  │ ──► │Display Task│ ──► │  TFT  │
+   │  Task   │     │        │     │(Mutex Lock)│     │Screen │
+   └─────────┘     └────────┘     └────────────┘     └───────┘
+
+3. EMERGENCY CALL:
+   ┌─────────┐     ┌────────┐     ┌─────────┐     ┌──────┐
+   │SOS Logic│ ──► │ Queue  │ ──► │LoRa Task│ ──► │LoRa  │
+   │  Task   │     │        │     │(Mutex)  │     │Radio │
+   └─────────┘     └────────┘     └─────────┘     └──────┘
+                                        │
+                                        ▼
+                                  ┌──────────┐
+                                  │Event Set │
+                                  │MSG_SENT  │
+                                  └──────────┘
+
+TASK PRIORITIES (Higher = More Important)
+==========================================
+
+Priority 3 (HIGHEST):  SOS Logic Task
+  - Critical decision making
+  - Emergency coordination
+  - Fastest response required
+
+Priority 2 (MEDIUM):   LoRa Task, Input Task
+  - Time-sensitive communication
+  - User input responsiveness
+  - Important but not critical
+
+Priority 1 (LOW):      Display Task
+  - Visual updates can wait
+  - Lower priority than inputs
+  - Still responsive
+
+Priority 0 (LOWEST):   Power Task
+  - Background optimization
+  - Runs when system idle
+  - Non-critical operations
+
+MEMORY LAYOUT
+=============
+
+Task Stacks:
+  - Display Task:    4096 bytes
+  - LoRa Task:       3072 bytes
+  - Input Task:      2048 bytes
+  - Power Task:      2048 bytes
+  - SOS Logic Task:  3072 bytes
+  Total:            14336 bytes
+
+Communication:
+  - 3 Queues:        ~2048 bytes
+  - 1 Event Group:     ~32 bytes
+  - 2 Mutexes:         ~64 bytes
+  Total:             ~2144 bytes
+
+Global Data:         ~1024 bytes
+Heap Reserve:        ~6500 bytes
+────────────────────────────────
+TOTAL RAM:          ~24KB
+
+TIMING CHARACTERISTICS
+======================
+
+Input Task:      10ms cycle (very responsive)
+Display Task:   100ms cycle (smooth updates)
+LoRa Task:       50ms cycle (fast communication)
+Power Task:    1000ms cycle (background)
+SOS Logic:       10ms cycle (instant decisions)
+
+Real Response Times:
+  - Touch detected:     < 10ms
+  - Display updated:    < 110ms
+  - LoRa transmitted:   < 60ms
+  - Button debounced:     300ms
+
+POWER STATES
+============
+
+Active:    All tasks running
+           CPU: 15% average
+           Power: MEDIUM
+
+Idle:      No input, waiting
+           Most tasks blocked
+           CPU: < 5%
+           Power: LOW
+
+Sleep:     Light sleep mode
+           Wake on button
+           CPU: 0%
+           Power: VERY LOW
+
+SCALABILITY
+===========
+
+Easy to add new features:
+
+┌─────────────┐
+│  New WiFi   │  ─┐
+│   Task      │   │
+│ Priority 2  │   │
+└─────────────┘   │
+                  ├─► Just create new task!
+┌─────────────┐   │   No changes to existing tasks
+│  New GPS    │   │
+│   Task      │   │
+│ Priority 1  │  ─┘
+└─────────────┘
+
+The architecture is:
+✅ Modular
+✅ Extensible  
+✅ Maintainable
+✅ Professional
