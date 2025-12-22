@@ -322,8 +322,10 @@ int receiveLoRaPacket(char* buffer, size_t bufferSize) {
 
 // Configure wake-up sources
 void configurePowerManagement() {
-  // Configure button as wake-up source
-  esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_PIN, 0); // Wake on LOW
+  // Configure button as wake-up source (validate GPIO pin range)
+  if (BUTTON_PIN >= 0 && BUTTON_PIN < GPIO_NUM_MAX) {
+    esp_sleep_enable_ext0_wakeup(static_cast<gpio_num_t>(BUTTON_PIN), 0); // Wake on LOW
+  }
   
   // Could add timer wake-up for periodic checks
   // esp_sleep_enable_timer_wakeup(60 * 1000000); // 60 seconds
@@ -532,8 +534,8 @@ void sosLogicTask(void* parameter) {
       
       switch (inputEvent.type) {
         case InputEvent::TOUCH_EVENT:
-          // Touch changes service
-          currentService = static_cast<Service>((currentService + 1) % 4);
+          // Touch changes service (cycle through all services)
+          currentService = static_cast<Service>((currentService + 1) % (EMERGENCY + 1));
           
           displayCmd.type = DisplayCommand::UPDATE_SERVICE;
           displayCmd.service = currentService;
@@ -550,19 +552,19 @@ void sosLogicTask(void* parameter) {
           displayCmd.type = DisplayCommand::SHOW_CALLING;
           xQueueSend(displayQueue, &displayCmd, MS_TO_TICKS(100));
           
-          // Prepare LoRa message
+          // Prepare LoRa message using safe string copy
           switch (currentService) {
             case AMBULANCE:
-              strcpy(loraMsg.message, "AMBULANCE");
+              snprintf(loraMsg.message, sizeof(loraMsg.message), "AMBULANCE");
               break;
             case FIRE_ENGINE:
-              strcpy(loraMsg.message, "FIRE ENGINE");
+              snprintf(loraMsg.message, sizeof(loraMsg.message), "FIRE ENGINE");
               break;
             case POLICE:
-              strcpy(loraMsg.message, "POLICE");
+              snprintf(loraMsg.message, sizeof(loraMsg.message), "POLICE");
               break;
             case EMERGENCY:
-              strcpy(loraMsg.message, "EMERGENCY SERVICE");
+              snprintf(loraMsg.message, sizeof(loraMsg.message), "EMERGENCY SERVICE");
               break;
           }
           loraMsg.timestamp = millis();
@@ -736,6 +738,6 @@ void loop() {
   // The FreeRTOS idle task will run when no other tasks are ready
   // This saves CPU cycles and power
   
-  // Optional: Add watchdog feed or minimal monitoring here if needed
-  vTaskDelay(portMAX_DELAY);
+  // Use finite delay to allow system health checks and watchdog
+  vTaskDelay(pdMS_TO_TICKS(1000));
 }
