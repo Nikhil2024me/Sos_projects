@@ -1,0 +1,27 @@
+{
+  "name": "tft-ui-lab-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.1",
+    "@rollup/wasm-node": "^4.67.2",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.0",
+    "rollup": "npm:@rollup/wasm-node@^4.67.2",
+    "typescript": "^5.9.2",
+    "vite": "^7.0.6"
+  }
+}
