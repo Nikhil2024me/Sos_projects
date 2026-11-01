@@ -1,0 +1,18 @@
+{
+  "name": "tft-ui-lab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pixel-accurate 320x240 UI workbench: layout studio, geometry linter, content audit, pixel probe and screenshot oracle",
+  "scripts": {
+    "setup": "npm --prefix studio install && node tools/gen.mjs",
+    "studio": "npm --prefix studio run dev",
+    "studio:build": "npm --prefix studio run build",
+    "gen": "node tools/gen.mjs",
+    "gen:check": "node tools/gen.mjs --check",
+    "lint:ui": "node tools/lint-layout.mjs",
+    "audit": "node tools/audit.mjs",
+    "shots": "node tools/shots.mjs",
+    "probe": "node tools/probe.mjs",
+    "check": "npm run gen:check && npm run lint:ui && npm run audit && npm run studio:build"
+  }
+}
