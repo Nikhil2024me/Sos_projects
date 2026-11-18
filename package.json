@@ -1,0 +1,30 @@
+{
+  "name": "adivasi-suraksha",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Adivasi Suraksha - disaster early-warning dashboard for tribal India. Next.js (App Router) app with Node route handlers, deployed to Cloudflare with the OpenNext adapter.",
+  "scripts": {
+    "sync": "node scripts/sync-public.mjs",
+    "predev": "node scripts/sync-public.mjs",
+    "dev": "next dev",
+    "build": "node scripts/sync-public.mjs && next build",
+    "start": "next start",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "test": "node test/api-check.js"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "dependencies": {
+    "next": "^16.4.6",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.17",
+    "wrangler": "^4.0.0"
+  }
+}

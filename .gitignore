@@ -1,0 +1,27 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+.vercel/
+.open-next/
+.wrangler/
+.turbo/
+cloudflare-env.d.ts
+
+# Generated browser assets (see scripts/sync-public.mjs)
+public/
+
+# Local environment / secrets
+.env
+.env*.local
+.dev.vars
+
+# Private API keys and local test output
+server-secrets.js
+apis.txt
+test/screenshots/
+test/*-report.json
+
+# Logs and OS cruft
+*.log
+.DS_Store

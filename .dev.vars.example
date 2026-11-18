@@ -1,0 +1,10 @@
+# Adivasi Suraksha - Cloudflare Pages / Wrangler local secrets (example).
+#
+# Copy to .dev.vars for `wrangler pages dev` / `next-on-pages --watch`.
+# These mirror the production environment variables set in the Cloudflare
+# Pages dashboard. Never commit real secrets.
+
+AMBEE_KEY=
+EARTHDATA_TOKEN=
+RELIEFWEB_APPNAME=
+BHUVAN_TOKEN=
